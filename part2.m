@@ -1,8 +1,12 @@
 read_data;
 calc_returns;
-obj = @(a) -sharpe(w2(a), roc);
-% a0 = zeros(12, 1);
 a0 = ones(12, 1) * 0.1;
-a = fminunc(obj, a0);
+options = optimoptions('fminunc','GradObj', 'on');
+% options = optimoptions('fminunc');
+fun = part2f(crcc_, croo, croc_, crco, ctvl_, crvp_, roc);
+a = fminunc(fun, a0, options);
+
+disp('a: ');
 disp(a);
-disp(sharpe(w2(a), roc));
+disp('sharpe: ');
+disp(sharpe(w2(a, crcc_, croo, croc_, crco, ctvl_, crvp_), roc) * sqrt(252));

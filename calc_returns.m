@@ -55,3 +55,5 @@ global crvp_;
 crvp_ = bsxfun(@rdivide, rvp_, mrvp_);
 global ctvl_;
 ctvl_ = bsxfun(@rdivide, tvl_, mtvl_);
+
+ind = ind(:, 3 : T);

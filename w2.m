@@ -1,13 +1,7 @@
-function w2 = w2(a)
-    global N;
-    global T;
-    global crcc_;
-    global croo;
-    global crco;
-    global croc_;
-    global ctvl_;
-    global crvp_;
-    x = zeros(12, N, T - 2);
+function [w2val, dw2da] = w2(a, crcc_, croo, croc_, crco, ctvl_, crvp_)
+    N = size(ctvl_, 1);
+    T = size(ctvl_, 2);
+    x = zeros(12, N, T);
     x(1, :, :) = crcc_ / N;
     x(2, :, :) = croo / N;
     x(3, :, :) = croc_ / N;
@@ -21,5 +15,6 @@ function w2 = w2(a)
     x(11, :, :) = crvp_ .* croc_ / N;
     x(12, :, :) = crvp_ .* crco / N;
     a = reshape(a, [12, 1, 1]);
-    w2 = squeeze(sum(bsxfun(@times, a, x), 1));
+    w2val = squeeze(sum(bsxfun(@times, a, x), 1));
+    dw2da = x;
 end

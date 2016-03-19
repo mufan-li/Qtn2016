@@ -18,21 +18,61 @@ source('MSwM_functions.R')
 
 # real data
 # setwd("~/GitHub/Qtn2016/")
-input_data = read.csv("in_sample_data.csv")
+input_data = read.csv("in_sample_data_headers2.csv")
 pred_df = NULL
-N_in = 100
+N_in = 250
 n_diff= 1
-n_ema = 2
-y_name = "oil_spot"
+n_ema = 1
+j = 2
+y_name = paste0("ROC_",j)
+x_names = paste0(c("ROC_","RCC_","RVP_"),j)
 
-for (i in 1200:1220) {
-	cat("Iteration:",i,"\n")
+for (i in 1:200) {
+	# cat("Iteration:",i,"\n")
 	N_begin = i
 	N_end = i + N_in
 
-	each_train_data = create_df(input_data,N_begin,N_in,
-						y_name=y_name,n_diff=n_diff,n_ema=n_ema)
-	data_mod.mswm = msmFit_df(each_train_data,k=2,p=0)
+	if (i==1) {
+		each_train_data = create_df(input_data,N_begin,N_in,
+							y_name=y_name,x_names=x_names,
+							n_diff=n_diff,n_ema=n_ema)
+		data_mod.mswm = msmFit_df(each_train_data,k=2,p=0)
+
+		state_prob = data_mod.mswm@Fit@filtProb
+		trans_prob = data_mod.mswm@transMat
+		state_prob_cur = state_prob[nrow(state_prob),]
+		state_prob_next = trans_prob %*% state_prob_cur
+	}
+
+	prev_pred_data = create_df(input_data,N_begin,N_in+1,
+					y_name=y_name,x_names=x_names,
+					n_diff=n_diff,n_ema=n_ema)[N_in,]
+	prev_pred_vec = as.numeric(prev_pred_data)
+	prev_pred_vec[1] = 1
+
+	each_pred_data = create_df(input_data,N_begin,N_in+1,
+					y_name=y_name,x_names=x_names,
+					n_diff=n_diff,n_ema=n_ema)[N_in+1,]
+	each_pred_vec = as.numeric(each_pred_data)
+	each_pred_vec[1] = 1
+
+	if (i>1) {
+		state_prob_prev = state_prob_cur
+		# E-step, find state_prob_cur
+		cur_mean = c(sum(data_mod.mswm@Coef[1,] * prev_pred_vec),
+					sum(data_mod.mswm@Coef[2,] * prev_pred_vec) )
+		cur_sd = data_mod.mswm@std
+		cur_lh = c( dnorm(prev_pred_data$y, 
+						mean = cur_mean[1], sd = cur_sd[1]),
+					dnorm(prev_pred_data$y, 
+						mean = cur_mean[2], sd = cur_sd[2]) )
+		unnorm_posterior = trans_prob %*% state_prob_prev * cur_lh
+		state_prob_cur = as.numeric(unnorm_posterior / 
+									sum(unnorm_posterior))
+		
+		# inference step in state_prob_next
+		state_prob_next = trans_prob %*% state_prob_cur
+	}
 	# summary(data_mod.mswm)
 	# plotProb(data_mod.mswm,which=1)
 
@@ -46,19 +86,8 @@ for (i in 1200:1220) {
 	# data_mod.mswm@seCoef
 	# data_mod.mswm@transMat
 
-	state_prob = data_mod.mswm@Fit@filtProb
-	trans_prob = data_mod.mswm@transMat
-	state_prob_n = trans_prob %*% state_prob[nrow(state_prob),]
-
 	# N_begin = round(nrow(input_data)/2,0)
 	# N_end = nrow(input_data)
-	each_pred_data = create_df(input_data,N_begin,N_in+1,
-					y_name=y_name,n_diff=n_diff,n_ema=n_ema)[N_in+1,]
-	each_pred_vec = as.numeric(each_pred_data)
-	each_pred_vec[1] = 1
-
-	prev_pred_data = create_df(input_data,N_begin,N_in+1,
-					y_name=y_name,n_diff=n_diff,n_ema=n_ema)[N_in,]
 
 	y_regimes = c(sum(data_mod.mswm@Coef[1,] * each_pred_vec),
 		sum(data_mod.mswm@Coef[2,] * each_pred_vec) )
@@ -71,13 +100,14 @@ for (i in 1200:1220) {
 		y_true = input_data[nth_row,y_name]
 	}
 	
-	y_pred = rm_ema(y_regimes %*% state_prob_n, 
+	y_pred = rm_ema(y_regimes %*% state_prob_next, 
 					prev_pred_data$y, n_ema)
-
+	sd_pred = rm_ema(data_mod.mswm@std %*% state_prob_next,
+					0, n_ema)
 	each_pred = data.frame(x = nth_row,
 				y_true = y_true, 
 				y_pred = y_pred,
-				sd = data_mod.mswm@std %*% state_prob_n)
+				sd = sd_pred)
 	pred_df = rbind(pred_df, each_pred)
 }
 
@@ -87,6 +117,9 @@ pred_plot2 = ggplot(pred_df,aes(x=x)) +
 	geom_point(aes(y=y_pred), color = "red") +
 	geom_point(aes(y=y_true))
 print(pred_plot2)
+
+cat("RMSE: ", with(pred_df, sqrt(mean((y_true - y_pred)^2))), "\n")
+cat("Error Rate: ", with(pred_df, mean((y_true * y_pred)<0)), "\n")
 
 
 

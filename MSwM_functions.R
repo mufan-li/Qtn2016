@@ -57,3 +57,13 @@ rm_ema <- function(pred_ema, prev_ema, n_ema) {
 	pred_point = (pred_ema - prev_ema / (1-M)) / M
 	return(pred_point)
 }
+
+
+
+
+
+
+
+
+
+

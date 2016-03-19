@@ -1,0 +1,13 @@
+Notes 
+
+ - Continuous relaxation
+ - Observe a Markov Chain, model the transition
+ - Beta/Dirichlet approx Markov Chain
+ - RBM/AE for time series
+
+ - Model price changes as an observed Markov Chain
+ - GP on exp MA
+
+ - Run GP on higher dimensions
+
+ - reconstruct prediction from EMA

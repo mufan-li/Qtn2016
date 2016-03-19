@@ -13,10 +13,10 @@ rvp = 1 / (4 * log(2)) * (log(sh) - log(sl)) .^ 2;
 
 rcc_ = rcc(:, 2 : T - 1);
 rco_ = rco(:, 2 : T - 1);
-roc_ = rco(:, 2 : T - 1);
-roo_ = rco(:, 2 : T - 1);
-rvp_ = rco(:, 2 : T - 1);
-tvl_ = rco(:, 2 : T - 1);
+roc_ = roc(:, 2 : T - 1);
+roo_ = roo(:, 2 : T - 1);
+rvp_ = rvp(:, 2 : T - 1);
+tvl_ = tvl(:, 2 : T - 1);
 
 rcc = rcc(:, 3 : T);
 rco = rco(:, 3 : T);
@@ -52,6 +52,6 @@ crcc_ = bsxfun(@minus, rcc_, mrcc_);
 global croc_;
 croc_ = bsxfun(@minus, roc_, mroc_);
 global crvp_;
-crvp_ = bsxfun(@minus, rvp_, mrvp_);
+crvp_ = bsxfun(@rdivide, rvp_, mrvp_);
 global ctvl_;
-ctvl_ = bsxfun(@minus, tvl_, mtvl_);
+ctvl_ = bsxfun(@rdivide, tvl_, mtvl_);

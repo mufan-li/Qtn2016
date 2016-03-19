@@ -1,0 +1,182 @@
+---
+title: "Solution Description - Part (1)"
+author: "Team A - Mufan Li, Mengye Ren, Tian Xia"
+date: "March 18, 2016"
+output: pdf_document
+---
+
+We first display the four time series plots.
+
+```{r, echo=FALSE, warning=FALSE, include=FALSE, cache=FALSE}
+# preprocess
+library(ggplot2)
+library(xtable)
+options(xtable.comment = FALSE)
+library(moments)
+library(PerformanceAnalytics)
+setwd("~/GitHub/quantathon-2016/")
+file_name = "data_part1.team_A.csv"
+data_part1 = read.csv(file_name)
+
+data_part1$date = as.Date(as.character(data_part1$yyyymmdd),
+                              format = "%Y%m%d")
+names(data_part1) = gsub("return","returns",names(data_part1))
+data_part1 = data_part1[data_part1$returns != 99,]
+# consider removing rows with value 99
+```
+
+```{r, echo=FALSE, warning=FALSE}
+# Daily LS Returns
+ggplot(data_part1, aes(x=date, y=returns)) + geom_line() +
+  scale_x_date("Date") + scale_y_continuous("Returns") +
+  ggtitle("1. Daily Long-Short Returns")
+```
+
+```{r, echo=FALSE, warning=FALSE}
+# Cumulative LS Returns
+# Find Equal Weighted Return
+in_data = read.csv("in_sample_data_headers.csv")
+in_data2 = in_data[,grepl("SC",names(in_data))]
+
+for (each_name in names(in_data2)) {
+  in_data2[-1,each_name] =
+    exp(diff(log(in_data2[,each_name])))-1
+}
+in_data3 = in_data2[-1,]
+equal_weight_returns = as.numeric(rowMeans(in_data3))[-1]
+
+ggplot(data_part1, aes(x=date)) + 
+  geom_line(aes(y=cumsum(log(1+returns)),
+                color="Long-Short Portfolio")) +
+  geom_line(aes(y=cumsum(log(1+equal_weight_returns)),
+                color="Equal-Weight Portfolio")) +
+  scale_x_date("Date") + scale_y_continuous("Cumulative Log-Returns") +
+  ggtitle("2. Cumulative Long-Short Returns - In Natural Logarithms") +
+  guides(color=guide_legend(title=NULL)) + 
+  theme(legend.position="bottom")
+```
+
+```{r, echo=FALSE, warning=FALSE}
+# Mean Absolute Weights
+mean_abs_weights = as.numeric(
+    rowMeans(
+      abs(
+        data_part1[,grepl("Stock",names(data_part1))]
+        )
+      )
+  )
+
+ggplot(data_part1, aes(x=date, y=mean_abs_weights)) + geom_line() +
+  scale_x_date("Date") + scale_y_continuous("Mean Absolute Weights") +
+  ggtitle("3. Daily Mean Absolute Weights")
+```
+
+```{r, echo=FALSE, warning=FALSE}
+# Portfolio Direction
+sum_weight = as.numeric(
+    rowSums(data_part1[,grepl("Stock",names(data_part1))])
+  )
+sum_abs_weight = as.numeric(
+  rowSums(abs(data_part1[,grepl("Stock",names(data_part1))]))
+)
+port_direction= sum_weight / sum_abs_weight
+port_direction[is.nan(port_direction)] = 0
+
+ggplot(data_part1, aes(x=date, y=port_direction)) + geom_line() +
+  scale_x_date("Date") + scale_y_continuous("Portfolio Direction") +
+  ggtitle("4. Daily Portfolio Direction")
+```
+
+We can also look at the relevant statistics below.
+
+```{r xtable, echo=FALSE, warning=FALSE, results = "asis"}
+returns = data_part1$returns
+log_returns = log(returns+1)
+# returns = runif(nrow(data_part1),-0.1,0.1)
+# log_returns = rnorm(length(data_part1$returns))
+
+avg_return = mean(log_returns)
+sd_return = sd(log_returns)
+sharpe_ratio = avg_return / sd_return * sqrt(252)
+
+skew_val = skewness(log_returns)
+kurt_val = kurtosis(log_returns)
+
+# DO NOT use log returns for drawdown!
+# maxDrawdown(returns, geometric = T)
+# findDrawdowns(edhec[,"Funds of Funds", drop=FALSE])
+returns_df = data.frame(returns)
+row.names(returns_df) = data_part1$date
+tab_drawdowns = table.Drawdowns(returns_df,top=1)
+
+days_drawdown = tab_drawdowns$`To Trough`
+max_drawdown = tab_drawdowns$Depth
+
+# mean(log(equal_weight_returns+1))/
+#   sd(log(equal_weight_returns+1)) * sqrt(252)
+# skewness(equal_weight_returns)
+# kurtosis(equal_weight_returns)
+cor_val = cor(equal_weight_returns,returns)
+
+disp_table = data.frame(
+  Names = c("Average Daily Log Returns",
+            "Standard Deviation of Daily Log Returns",
+            "Annualized Sharpe Ratio",
+            "Skewness",
+            "Kurtosis",
+            "Maximum Drawdown - Number of Days",
+            "Maximum Drawdown - Return",
+            "Correlation with Equal Weighted Returns"),
+  Values = c(avg_return,
+            sd_return,
+            sharpe_ratio,
+            skew_val,
+            kurt_val,
+            days_drawdown,
+            max_drawdown,
+            cor_val)
+)
+
+# tab <- xtable(summary(out)$coef, digits=c(0, 2, 2, 1, 2))
+tab = xtable(disp_table,digits=4)
+print(tab)
+```
+
+The strategy worked well considering how naive it was. 
+We first observe plot 2 of the cumulative returns,
+where both the long-short and the equal-weight portfolios
+delivered similar long term returns.
+In fact the Sharpe ratio for the equal-weight portfolio 
+is $1.03$, which means the strategy in this part
+is not outperforming the market.
+
+For the equal-weighted portfolio, 
+the skewness of returns is $0.188$,
+and the excess kurtosis is $1.405$,
+both are lower than the long-short portfolio.
+Especially for the kurtosis of $5.747$,
+this value is comparable to that of a student-t 
+distribution with 5 degrees of freedom
+(which has kurtosis $5$),
+implying the returns are extremely heavy tailed.
+
+To provide futher intuition to the results,
+we observe the form of the strategy:
+
+$$ W_1(t,j) = - \frac{1}{N} R_{cc}(t-1,j) - R_{cc,avg}(t-1) $$
+
+This weight is chosen based on whether the stock 
+outperform its peers in the previous day or not. 
+However, we observe that a higher weight is given to
+the bigger movers in the previous day.
+Suppose a stock remains volatile for an extended period of time,
+we will have a greater risk exposure compared to 
+the equal-weighted portfolio,
+possibly contributing to heavier tails of returns.
+
+
+
+
+
+
+

@@ -38,5 +38,5 @@ disp('a: ');
 disp(a);
 disp('sharpe: ');
 disp(sharpe(w2val, roc, ind) * sqrt(252));
-output_csv('data_part3.team_A.csv', datetime, w2val, roc);
+output_csv('data_part3.team_A.csv', datetime, w2val, roc, ind);
 output_coeff('coeff_part3.team_A.csv', 'b', a);

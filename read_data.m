@@ -1,20 +1,25 @@
-NSTOCKS = 100;
+clear;
+close all;
 
-fmt = ['%s', repmat('%f%f%f%f%d%d', 1, NSTOCKS)];
+global N;
+N = 100;
+
+fmt = ['%s', repmat('%f%f%f%f%d%d', 1, N)];
 fid = fopen('in_sample_data.txt');
 data = textscan(fid, fmt, 'delimiter', ',');
 datetime = data{1};
 
-NTIME = size(data{1}, 1);
+global T;
+T = size(data{1}, 1);
 
-so = zeros(NSTOCKS, NTIME);
-sh = zeros(NSTOCKS, NTIME);
-sl = zeros(NSTOCKS, NTIME);
-sc = zeros(NSTOCKS, NTIME);
-tvl = zeros(NSTOCKS, NTIME);
-ind = zeros(NSTOCKS, NTIME);
+so = zeros(N, T);
+sh = zeros(N, T);
+sl = zeros(N, T);
+sc = zeros(N, T);
+tvl = zeros(N, T);
+ind = zeros(N, T);
 
-for ii = 0 : NSTOCKS - 1
+for ii = 0 : N - 1
     so(ii + 1, :) = data{ii * 6 + 2};
     sh(ii + 1, :) = data{ii * 6 + 3};
     sl(ii + 1, :) = data{ii * 6 + 4};
@@ -22,3 +27,4 @@ for ii = 0 : NSTOCKS - 1
     tvl(ii + 1, :) = data{ii * 6 + 6};
     ind(ii + 1, :) = data{ii * 6 + 7};
 end
+

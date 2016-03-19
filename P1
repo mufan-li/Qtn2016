@@ -16,7 +16,7 @@ classdef P1
             CumR = P1.computeCumR(RP1);
             Direction = P1.computeDirection(W1);
             AbsWeight = P1.computeAbsWeight(W1);
-            P1.Part1Output('data_part1.team_A.csv', Dates, RP1, AbsWeight, Direction, W1);
+            P1.Part1Output('data_part1.team_A.csv', Dates, RP1, CumR, AbsWeight, Direction, W1);
         end
         
         
@@ -74,6 +74,16 @@ classdef P1
             end
         end
         
+        function Return = computeRPRestrict(Weight, RCC, IND)
+            [num_time, num_stock] = size(Weight);
+            Fill = (Weight .* IND > 0);
+            Weight_fill = Weight .* Fill;
+            Return = zeros(num_time, 1);
+            for i = 3 : num_time
+                Return(i) = Weight_fill(i,:) * transpose(RCC(i,:)) / sum(abs(Weight_fill(i,:)));
+            end
+        end
+        
         % First two columns of CumR are zeros
         function CumR = computeCumR(RP1)
             [num_time, num_stock] = size(RP1);
@@ -91,7 +101,7 @@ classdef P1
             AbsWeight = sum(abs(Weight), 2);
         end
         
-        function Part1Output(filename, Dates, Return, AbsWeight, Direction, Weight)
+        function Part1Output(filename, Dates, Return, CumR, AbsWeight, Direction, Weight)
 %             Output = [Dates, Return, AbsWeight, Direction, Weight];
 %             [row_num, col_num] = size(Output);
 %             tag_invalid = 99;
@@ -101,21 +111,21 @@ classdef P1
 
             fileID = fopen(filename,'w');
             % Write header
-            fprintf(fileID, 'yyyymmdd,return,mean_abs,portfolio_direction');
+            fprintf(fileID, 'yyyymmdd,return,cumulative_return,mean_abs_weight,portfolio_direction');
             for i = 0 : num_stock - 1
                 fprintf(fileID, ',Stock_%d', i);
             end
             fprintf(fileID, '\n');
             for t = 1 : 2
                 tag_invalid = 99;
-                fprintf(fileID, '%d,%d,%d,%d', Dates(t), tag_invalid, tag_invalid, tag_invalid);
+                fprintf(fileID, '%d,%d,%d,%d,%d', Dates(t), tag_invalid, tag_invalid, tag_invalid, tag_invalid);
                 for j = 1 : num_stock
                     fprintf(fileID, ',%d', tag_invalid);
                 end
                 fprintf(fileID, '\n');
             end
             for t = 3 : num_time
-                fprintf(fileID, '%d,%f,%f,%f', Dates(t), Return(t), AbsWeight(t), Direction(t));
+                fprintf(fileID, '%d,%f,%f,%f,%f', Dates(t), Return(t), CumR(t), AbsWeight(t), Direction(t));
                 for j = 1 : num_stock
                     fprintf(fileID, ',%f', Weight(t,j));
                 end

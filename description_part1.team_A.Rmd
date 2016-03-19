@@ -163,10 +163,12 @@ implying the returns are extremely heavy tailed.
 To provide futher intuition to the results,
 we observe the form of the strategy:
 
-$$ W_1(t,j) = - \frac{1}{N} R_{cc}(t-1,j) - R_{cc,avg}(t-1) $$
+$$ W_1(t,j) = - \frac{1}{N} [ R_{cc}(t-1,j) - R_{cc,avg}(t-1) ] $$
 
 This weight is chosen based on whether the stock 
 outperform its peers in the previous day or not. 
+This strategy would work wonderfully if all of the big moves 
+reverses itself in the next day.
 However, we observe that a higher weight is given to
 the bigger movers in the previous day.
 Suppose a stock remains volatile for an extended period of time,

@@ -1,0 +1,129 @@
+classdef P1
+
+    properties
+    end
+    
+    methods (Static)
+        % Main execution for Part 1
+        % Read source data from 'in_sample_data.txt'
+        % and write the output out to 'data_part1.team_A.csv'
+        function P1_main()
+            [Dates, SO, SH, SL, SC, TVL, IND] = P1.readInput('in_sample_data.txt');
+            RCC = P1.computeRCC(SC);
+            AvrRCC = P1.computeAvrRCC(RCC);
+            W1 = P1.computeW1(RCC, AvrRCC);
+            RP1 = P1.computeRP1(W1, RCC);
+            CumR = P1.computeCumR(RP1);
+            Direction = P1.computeDirection(W1);
+            AbsWeight = P1.computeAbsWeight(W1);
+            P1.Part1Output('data_part1.team_A.csv', Dates, RP1, AbsWeight, Direction, W1);
+        end
+        
+        
+        function [Dates, SO, SH, SL, SC, TVL, IND] = readInput(filename)
+            data_src = csvread(filename);
+            Dates = data_src(:,1);
+            [num_row, num_col] = size(data_src);
+            num_field = 6;
+            num_stock = (num_col - 1) / num_field;
+            SO = zeros(num_row, num_stock);
+            SH = zeros(num_row, num_stock);
+            SL = zeros(num_row, num_stock);
+            SC= zeros(num_row, num_stock);
+            TVL = zeros(num_row, num_stock);
+            IND = zeros(num_row, num_stock);
+            for j = 0 : num_stock-1
+                SO(:,j+1) = data_src(:, j * num_field + 2);
+                SH(:,j+1) = data_src(:, j * num_field + 3);
+                SL(:,j+1) = data_src(:, j * num_field + 4);
+                SC(:,j+1) = data_src(:, j * num_field + 5);
+                TVL(:,j+1) = data_src(:, j * num_field + 6);
+                IND(:,j+1) = data_src(:, j * num_field + 7);
+            end
+        end
+        
+        % 
+        function RCC = computeRCC(SC)
+            [t_max, num_stock] = size(SC);
+            RCC = zeros([t_max, num_stock]);
+            for i = 2 : t_max
+                RCC(i,:) = SC(i,:) ./ SC(i-1,:) - 1;
+            end
+        end
+        
+        % size(RCC) = [num_time, num_stock]
+        function AvrRCC = computeAvrRCC(RCC)
+            [num_time, num_stock] = size(RCC);
+            AvrRCC = sum(RCC, 2) / num_stock;
+        end
+        
+        % size(Weight) = [num_time, num_stock]
+        % First two columns of W1 are zeros
+        function Weight = computeW1(RCC, AvrRCC)
+            [num_time, num_stock] = size(RCC);
+            Weight = zeros([num_time, num_stock]);
+            Weight(3:num_time,:) = -(RCC(2:num_time-1,:) - AvrRCC(2:num_time-1,:) * ones([1,num_stock])) / num_stock;
+        end
+        
+        % First two columns of RP1 are zeros
+        function RP1 = computeRP1(W1, RCC)
+            [num_time, num_stock] = size(W1);
+            RP1 = zeros(num_time, 1);
+            for i = 3 : num_time
+                RP1(i) = W1(i,:) * transpose(RCC(i,:)) / sum(abs(W1(i,:)));
+            end
+        end
+        
+        % First two columns of CumR are zeros
+        function CumR = computeCumR(RP1)
+            [num_time, num_stock] = size(RP1);
+            CumR = zeros(num_time, 1);
+            for i = 3 : num_time
+                CumR(i) = CumR(i-1) + log(1+RP1(i));
+            end
+        end
+        
+        function Direction = computeDirection(Weight)
+            Direction = sum(Weight, 2) ./ sum(abs(Weight),2);
+        end
+        
+        function AbsWeight = computeAbsWeight(Weight)
+            AbsWeight = sum(abs(Weight), 2);
+        end
+        
+        function Part1Output(filename, Dates, Return, AbsWeight, Direction, Weight)
+%             Output = [Dates, Return, AbsWeight, Direction, Weight];
+%             [row_num, col_num] = size(Output);
+%             tag_invalid = 99;
+%             Output(1:2, :) = tag_invalid * ones(2, col_num);
+%             csvwrite(filename, Output);
+            [num_time, num_stock] = size(Weight);
+
+            fileID = fopen(filename,'w');
+            % Write header
+            fprintf(fileID, 'yyyymmdd,return,mean_abs,portfolio_direction');
+            for i = 0 : num_stock - 1
+                fprintf(fileID, ',Stock_%d', i);
+            end
+            fprintf(fileID, '\n');
+            for t = 1 : 2
+                tag_invalid = 99;
+                fprintf(fileID, '%d,%d,%d,%d', Dates(t), tag_invalid, tag_invalid, tag_invalid);
+                for j = 1 : num_stock
+                    fprintf(fileID, ',%d', tag_invalid);
+                end
+                fprintf(fileID, '\n');
+            end
+            for t = 3 : num_time
+                fprintf(fileID, '%d,%f,%f,%f', Dates(t), Return(t), AbsWeight(t), Direction(t));
+                for j = 1 : num_stock
+                    fprintf(fileID, ',%f', Weight(t,j));
+                end
+                fprintf(fileID, '\n');
+            end
+            fclose(fileID);
+        end
+        
+    end
+
+end

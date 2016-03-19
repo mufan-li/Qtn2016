@@ -15,6 +15,7 @@ options(xtable.comment = FALSE)
 library(moments)
 library(PerformanceAnalytics)
 setwd("~/GitHub/quantathon-2016/")
+
 file_name = "data_part2.team_A.csv"
 data_part1 = read.csv(file_name)
 
@@ -143,7 +144,8 @@ tab = xtable(disp_table,digits=4,
 print(tab)
 ```
 
-To find the parameter values,
+To find the parameter values, 
+which are shown in Table 2,
 we tried both gradient descent and 
 random line search algorithms in MATLAB.
 Since we found multiple different local minima,
@@ -151,9 +153,14 @@ the problem is clearly non-convex;
 however all of the Sharpe ratios are fairly similar,
 so it is not a significant issue in this problem.
 
-```{r xtable, echo=FALSE, warning=FALSE, results = "asis"}
+```{r, echo=FALSE, warning=FALSE, results = "asis"}
 # Insert Table for Coefficients
-# coef_data = read.csv("coeff_part2.team_A.csv")
+coef_labels = paste0("a",1:12)
+coef_data = as.numeric(read.csv("coeff_part2.team_A.csv"))
+coef_df = data.frame(Parameter = coef_labels, Value = coef_data)
+tab2 = xtable(coef_df,digits = 6,
+              caption="Parameter Values - Using All In-Sample Data")
+print(tab2)
 ```
 
 Judging from in-sample data, 
@@ -162,37 +169,144 @@ We first observe plot 2 of cumulative returns
 and the annualized Sharpe ratio, 
 both of which are significantly outperforming 
 the strategy in part (1) and the equal weight portfolio.
-From a correlation of only $0.0113$
+From a correlation of only $0.0027$
 with the equal weight portfolio,
 and observing plot 4
 this strategy rarely has a portfolio direction of 
 more than $0.2$,
 we can see that the strategy is very market neutral.
 We also note the maximum drawdown for this strategy is 
-extremely low at $4$ days and $-7.3\%$.
+extremely low at $4$ days and $-7.45\%$.
 
 The only negative sign we observe from in-sample statistics 
 is the large skew and excess kurtosis,
 implying extremely heavy tails.
 However, but looking a histogram below (plot 5), 
 we realize that there is data point returning $20\%$.
-Removing that point, we would have a skewness of $0.556$
-and an excess kurtosis of $7.640$
+Removing that point, we would have a skewness of $0.675$
+and an excess kurtosis of $7.214$
 
 ```{r, echo=FALSE, warning=FALSE, message=FALSE}
-# skewness(log_returns[log_returns<0.1])
-# kurtosis(log_returns[log_returns<0.1])
+# skewness(log_returns[log_returns<0.2])
+# kurtosis(log_returns[log_returns<0.2])
 ggplot(NULL,aes(x=log_returns)) + geom_histogram() +
   xlab("Daily Log Returns") + 
   scale_y_continuous("Frequency") +
   ggtitle("5. Histogram of Daily Log Returns")
 ```
 
+To check on performance of this strategy,
+we separately optimized a set of parameters with 
+last $80\%$ of the data as in-sample,
+and tested the performance on the first $20\%$ 
+as out-of-sample.
+We specifically avoided using the last $20\%$
+of the data as out-of-sample 
+as the equal-weighted portfolio showed a significant 
+upward trend,
+making it a terrible dataset to validate our strategy.
 
+The summary statistics are shown in Table 3.
+While further validation on this strategy can be 
+done with different out-of-sample datas,
+we can already be quite confident about 
+the performance given out-of-sample Sharpe ratio of $7.24$.
 
+```{r, echo=FALSE, warning=FALSE, results = "asis"}
+val_data = read.csv("data_part2_val.team_A.csv")
+# write.csv(val_data,"data_part2_val.team_A.csv",row.names = F)
+# nrow(val_data)
 
+val_data$date = as.Date(as.character(val_data$yyyymmdd),
+                              format = "%Y%m%d")
+names(val_data) = gsub("return","returns",names(val_data))
+val_data = val_data[val_data$returns != 99,]
 
+returns = val_data$returns
+log_returns = log(returns+1)
 
+avg_return = mean(log_returns)
+sd_return = sd(log_returns)
+sharpe_ratio = avg_return / sd_return * sqrt(252)
+
+skew_val = skewness(log_returns)
+kurt_val = kurtosis(log_returns)
+
+# DO NOT use log returns for drawdown!
+# maxDrawdown(returns, geometric = T)
+# findDrawdowns(edhec[,"Funds of Funds", drop=FALSE])
+returns_df = data.frame(returns)
+row.names(returns_df) = val_data$date
+tab_drawdowns = table.Drawdowns(returns_df,top=1)
+
+days_drawdown = tab_drawdowns$`To Trough`
+max_drawdown = tab_drawdowns$Depth
+
+# mean(log(equal_weight_returns+1))/
+#   sd(log(equal_weight_returns+1)) * sqrt(252)
+# skewness(equal_weight_returns)
+# kurtosis(equal_weight_returns)
+cor_val = cor(equal_weight_returns[1:length(returns)],returns)
+
+disp_table = data.frame(
+  Names = c("Average Daily Log Returns",
+            "Standard Deviation of Daily Log Returns",
+            "Annualized Sharpe Ratio",
+            "Skewness",
+            "Kurtosis",
+            "Maximum Drawdown - Number of Days",
+            "Maximum Drawdown - Return",
+            "Correlation with Equal Weighted Returns"),
+  Values = c(avg_return,
+            sd_return,
+            sharpe_ratio,
+            skew_val,
+            kurt_val,
+            days_drawdown,
+            max_drawdown,
+            cor_val)
+)
+
+# tab <- xtable(summary(out)$coef, digits=c(0, 2, 2, 1, 2))
+tab = xtable(disp_table,digits=4,
+             caption="Summary Statistics - Using Out-of-Sample Data")
+print(tab)
+
+# read.csv("coeff_part2_val.team_A.csv")
+```
+
+We also observe the new weights in Table 4,
+when trained only with in-sample data.
+While the values are quite different, 
+we can achieve similar results.
+Therefore the local minima is not causing 
+a significant problem for us in the part.
+
+```{r, echo=FALSE, warning=FALSE, results = "asis"}
+# Insert Table for Coefficients
+coef_labels = paste0("a",1:12)
+coef_data = as.numeric(read.csv("coeff_part2_val.team_A.csv"))
+coef_df = data.frame(Parameter = coef_labels, Value = coef_data)
+tab2 = xtable(coef_df,digits = 6,
+              caption="Parameter Values - Using 80\\% of In-Sample Data")
+print(tab2)
+```
+
+Here we observe the form of the weights is decided 
+by a linear combination of $12$ factors.
+All of these factors are more less only dependent on 
+the previous day's data.
+Once the parameters $\{a_1,\ldots, a_{12}\}$ are fixed, 
+we are assuming a pattern to persist between 
+the previous day and today's data.
+In other words, we are assuming the conditional distribution
+$P(R_{OC}(t,j) | \mathcal{F}_{t-1})$ is stationary,
+where $\mathcal{F}_{t-1}$ is all the information up to 
+the previous day.
+However, we can expect this assumption to fail 
+in some future time such as a period of extreme volatility,
+especially since the in-sample data given to us 
+look fairly stationary.
 
 
 

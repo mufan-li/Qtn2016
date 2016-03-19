@@ -52,7 +52,7 @@ function part3()
     disp('validation sharpe:');
     disp(sharpe(w2val, vroc, vind) * sqrt(252));
     output_csv('data_part3_val.team_A.csv', datetime, w2val, vroc, vind);
-    output_coeff('coeff_part3_val.team_A.csv', 'a', a);
+    output_coeff('coeff_part3_val.team_A.csv', 'b', a);
 
     disp('train all...');
     a = train(crcc_, croo, croc_, crco, ctvl_, crvp_, roc, ind);

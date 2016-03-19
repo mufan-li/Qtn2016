@@ -43,6 +43,10 @@ function part2()
     vcrvp_ = crvp_(:, 1 : split);
     vroc = roc(:, 1 : split);
 
+    % a = ones(12, 1);
+    % w2val = w2(a, crcc_, croo, croc_, crco, ctvl_, crvp_);
+    % disp(sharpe(w2val, roc));
+
     disp('validation');
     disp('training...');
     a = train(tcrcc_, tcroo, tcroc_, tcrco, tctvl_, tcrvp_, troc);

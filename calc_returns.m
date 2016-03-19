@@ -47,8 +47,8 @@ function d = calc_returns(d)
     mtvl_ = zeros(N, T - 2);
     for ii = 1 : T - 2
         t = ii + 2;
-        mrvp_(:, ii) = mean(rvp(:, t - max(1, t - 200) : t - 1), 2);
-        mtvl_(:, ii) = mean(tvl(:, t - max(1, t - 200) : t - 1), 2);
+        mrvp_(:, ii) = mean(rvp(:, max(1, t - 200) : t - 1), 2);
+        mtvl_(:, ii) = mean(tvl(:, max(1, t - 200) : t - 1), 2);
     end
 
     croo = bsxfun(@minus, roo, mroo);

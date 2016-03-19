@@ -28,3 +28,4 @@ for ii = 0 : N - 1
     ind(ii + 1, :) = data{ii * 6 + 7};
 end
 
+fclose(fid);

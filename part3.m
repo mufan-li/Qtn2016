@@ -21,7 +21,9 @@ a = fminunc(fun, a0, options);
 % end
 % da ./ da2
 
+w2val = w2(a, crcc_, croo, croc_, crco, ctvl_, crvp_);
 disp('a: ');
 disp(a);
 disp('sharpe: ');
-disp(sharpe(w2(a, crcc_, croo, croc_, crco, ctvl_, crvp_), roc, ind) * sqrt(252));
+disp(sharpe(w2val, roc, ind) * sqrt(252));
+output_csv('part3.csv', datetime, w2val, roc);

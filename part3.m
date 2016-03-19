@@ -1,42 +1,62 @@
-read_data;
-calc_returns;
-a0 = ones(12, 1) * 0.01;
-% a0 = [-0.7025;
-%       -2.8220;
-%        4.2185;
-%       -8.1733;
-%        0.3422;
-%        0.8923;
-%       -1.2236;
-%        0.3529;
-%       -0.2983;
-%        2.0556;
-%       -2.0033;
-%       -1.9602;];
+function part3()
+    d = read_data();
+    d = calc_returns(d);
+    datetime = d.datetime;
+    rcc = d.rcc;
+    rco = d.rco;
+    roc = d.roc;
+    roo = d.roo;
+    ind = d.ind;
+    croo  = d.croo;
+    crco  = d.crco;
+    crcc_ = d.crcc_;
+    croc_ = d.croc_;
+    crvp_ = d.crvp_;
+    ctvl_ = d.ctvl_;
 
-% Best from part 2.
-% a0 = [-0.0410;
-%       -2.5908;
-%        2.6407;
-%        2.0834;
-%        0.0364;
-%       -0.1745;
-%        0.1438;
-%        0.1699;
-%       -0.0378;
-%        0.5769;
-%       -0.5450;
-%       -0.5988;];
-% a0 = rand(12, 1) * 0.1;
-% options = optimoptions('fminunc','GradObj', 'on');
-options = optimoptions('fminunc');
-fun = part3f(crcc_, croo, croc_, crco, ctvl_, crvp_, roc, ind);
-a = fminunc(fun, a0, options);
+    function a = train(crcc_, croo, croc_, crco, ctvl_, crvp_, roc, ind)
+        a0 = ones(12, 1) * 0.01;
+        options = optimoptions('fminunc');
+        % options = optimoptions('fminunc','GradObj', 'on');
+        fun = part3f(crcc_, croo, croc_, crco, ctvl_, crvp_, roc, ind);
+        a = fminunc(fun, a0, options);
+        w2val = w2(a, crcc_, croo, croc_, crco, ctvl_, crvp_);
+        disp('a:');
+        disp(a);
+        disp('sharpe:');
+        disp(sharpe(w2val, roc, ind) * sqrt(252));
+    end
 
-w2val = w2(a, crcc_, croo, croc_, crco, ctvl_, crvp_);
-disp('a: ');
-disp(a);
-disp('sharpe: ');
-disp(sharpe(w2val, roc, ind) * sqrt(252));
-output_csv('data_part3.team_A.csv', datetime, w2val, roc, ind);
-output_coeff('coeff_part3.team_A.csv', 'b', a);
+    split = 200;
+    tcrcc_ = crcc_(:, split : end);
+    tcroo = croo(:, split : end);
+    tcroc_ = croc_(:, split : end);
+    tcrco = crco(:, split : end);
+    tctvl_ = ctvl_(:, split : end);
+    tcrvp_ = crvp_(:, split : end);
+    troc = roc(:, split : end);
+    tind = ind(:, split : end);
+    vcrcc_ = crcc_(:, 1 : split);
+    vcroo = croo(:, 1 : split);
+    vcroc_ = croc_(:, 1 : split);
+    vcrco = crco(:, 1 : split);
+    vctvl_ = ctvl_(:, 1 : split);
+    vcrvp_ = crvp_(:, 1 : split);
+    vroc = roc(:, 1 : split);
+    vind = ind(:, 1 : split);
+    
+    disp('validation');
+    disp('training...');
+    a = train(tcrcc_, tcroo, tcroc_, tcrco, tctvl_, tcrvp_, troc, tind);
+    w2val = w2(a, vcrcc_, vcroo, vcroc_, vcrco, vctvl_, vcrvp_);
+    disp('validation sharpe:');
+    disp(sharpe(w2val, vroc, vind) * sqrt(252));
+    output_csv('data_part3_val.team_A.csv', datetime, w2val, vroc, vind);
+    output_coeff('coeff_part3_val.team_A.csv', 'a', a);
+
+    disp('train all...');
+    a = train(crcc_, croo, croc_, crco, ctvl_, crvp_, roc, ind);
+    w2val = w2(a, crcc_, croo, croc_, crco, ctvl_, crvp_);
+    output_csv('data_part3.team_A.csv', datetime, w2val, roc, ind);
+    output_coeff('coeff_part3.team_A.csv', 'b', a);
+end

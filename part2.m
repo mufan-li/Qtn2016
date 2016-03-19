@@ -10,5 +10,6 @@ w2val = w2(a, crcc_, croo, croc_, crco, ctvl_, crvp_);
 disp('a: ');
 disp(a);
 disp('sharpe: ');
-disp(sharpe(w2val, roc, ind) * sqrt(252));
-output_csv('part2.csv', datetime, w2val, roc);
+disp(sharpe(w2val, roc) * sqrt(252));
+output_csv('data_part2.team_A.csv', datetime, w2val, roc);
+output_coeff('coeff_part2.team_A.csv', 'a', a);

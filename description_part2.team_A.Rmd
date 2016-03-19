@@ -1,7 +1,7 @@
 ---
-title: "Solution Description - Part (1)"
+title: "Solution Description - Part (2)"
 author: "Team A - Mufan Li, Mengye Ren, Tian Xia"
-date: "March 18, 2016"
+date: "March 19, 2016"
 output: pdf_document
 ---
 
@@ -15,14 +15,14 @@ options(xtable.comment = FALSE)
 library(moments)
 library(PerformanceAnalytics)
 setwd("~/GitHub/quantathon-2016/")
-file_name = "data_part1.team_A.csv"
+file_name = "data_part2.team_A.csv"
 data_part1 = read.csv(file_name)
 
 data_part1$date = as.Date(as.character(data_part1$yyyymmdd),
                               format = "%Y%m%d")
 names(data_part1) = gsub("return","returns",names(data_part1))
 data_part1 = data_part1[data_part1$returns != 99,]
-# consider removing rows with value 99
+
 ```
 
 ```{r, echo=FALSE, warning=FALSE}
@@ -137,46 +137,69 @@ disp_table = data.frame(
             cor_val)
 )
 
-
 # tab <- xtable(summary(out)$coef, digits=c(0, 2, 2, 1, 2))
 tab = xtable(disp_table,digits=4,
-             caption="Summary Statistics")
+             caption="Summary Statistics - Using In-Sample Data")
 print(tab)
 ```
 
-The strategy worked well considering how naive it was. 
-We first observe plot 2 of the cumulative returns,
-where both the long-short and the equal-weight portfolios
-delivered similar long term returns.
-In fact the Sharpe ratio for the equal-weight portfolio 
-is $1.03$, which means the strategy in this part
-is not outperforming the market.
+To find the parameter values,
+we tried both gradient descent and 
+random line search algorithms in MATLAB.
+Since we found multiple different local minima,
+the problem is clearly non-convex;
+however all of the Sharpe ratios are fairly similar,
+so it is not a significant issue in this problem.
 
-For the equal-weighted portfolio, 
-the skewness of returns is $0.188$,
-and the excess kurtosis is $1.405$,
-both are lower than the long-short portfolio.
-Especially for the kurtosis of $5.747$,
-this value is comparable to that of a student-t 
-distribution with 5 degrees of freedom
-(which has kurtosis $5$),
-implying the returns are extremely heavy tailed.
+```{r xtable, echo=FALSE, warning=FALSE, results = "asis"}
+# Insert Table for Coefficients
+# coef_data = read.csv("coeff_part2.team_A.csv")
+```
 
-To provide futher intuition to the results,
-we observe the form of the strategy:
+Judging from in-sample data, 
+the strategy is performing quite well.
+We first observe plot 2 of cumulative returns 
+and the annualized Sharpe ratio, 
+both of which are significantly outperforming 
+the strategy in part (1) and the equal weight portfolio.
+From a correlation of only $0.0113$
+with the equal weight portfolio,
+and observing plot 4
+this strategy rarely has a portfolio direction of 
+more than $0.2$,
+we can see that the strategy is very market neutral.
+We also note the maximum drawdown for this strategy is 
+extremely low at $4$ days and $-7.3\%$.
 
-$$ W_1(t,j) = - \frac{1}{N} [ R_{cc}(t-1,j) - R_{cc,avg}(t-1) ] $$
+The only negative sign we observe from in-sample statistics 
+is the large skew and excess kurtosis,
+implying extremely heavy tails.
+However, but looking a histogram below (plot 5), 
+we realize that there is data point returning $20\%$.
+Removing that point, we would have a skewness of $0.556$
+and an excess kurtosis of $7.640$
 
-This weight is chosen based on whether the stock 
-outperform its peers in the previous day or not. 
-This strategy would work wonderfully if all of the big moves 
-reverses itself in the next day.
-However, we observe that a higher weight is given to
-the bigger movers in the previous day.
-Suppose a stock remains volatile for an extended period of time,
-we will have a greater risk exposure compared to 
-the equal-weighted portfolio,
-possibly contributing to heavier tails of returns.
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+# skewness(log_returns[log_returns<0.1])
+# kurtosis(log_returns[log_returns<0.1])
+ggplot(NULL,aes(x=log_returns)) + geom_histogram() +
+  xlab("Daily Log Returns") + 
+  scale_y_continuous("Frequency") +
+  ggtitle("5. Histogram of Daily Log Returns")
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

@@ -1,7 +1,7 @@
 ---
-title: "Solution Description - Part (1)"
+title: "Solution Description - Part (3)"
 author: "Team A - Mufan Li, Mengye Ren, Tian Xia"
-date: "March 18, 2016"
+date: "March 19, 2016"
 output: pdf_document
 ---
 
@@ -15,14 +15,22 @@ options(xtable.comment = FALSE)
 library(moments)
 library(PerformanceAnalytics)
 setwd("~/GitHub/quantathon-2016/")
-file_name = "data_part1.team_A.csv"
+file_name = "data_part3.team_A.csv"
 data_part1 = read.csv(file_name)
-
 data_part1$date = as.Date(as.character(data_part1$yyyymmdd),
                               format = "%Y%m%d")
 names(data_part1) = gsub("return","returns",names(data_part1))
 data_part1 = data_part1[data_part1$returns != 99,]
-# consider removing rows with value 99
+
+# temp_ret = as.numeric(rowMeans(in_data3[-1,] * W_df))
+# mean(temp_ret)/sd(temp_ret)
+
+in_data = read.csv("in_sample_data_headers.csv")
+ind_df = in_data[-1:-2,grepl("IND_",names(in_data))]
+W_df = data_part1[,grepl("Stock_",names(data_part1))]
+
+data_part1[,grepl("Stock_",names(data_part1))] = W_df * (W_df * ind_df >= 0)
+
 ```
 
 ```{r, echo=FALSE, warning=FALSE}
@@ -35,7 +43,6 @@ ggplot(data_part1, aes(x=date, y=returns)) + geom_line() +
 ```{r, echo=FALSE, warning=FALSE}
 # Cumulative LS Returns
 # Find Equal Weighted Return
-in_data = read.csv("in_sample_data_headers.csv")
 in_data2 = in_data[,grepl("SC",names(in_data))]
 
 for (each_name in names(in_data2)) {
@@ -137,46 +144,29 @@ disp_table = data.frame(
             cor_val)
 )
 
-
 # tab <- xtable(summary(out)$coef, digits=c(0, 2, 2, 1, 2))
 tab = xtable(disp_table,digits=4,
-             caption="Summary Statistics")
+             caption="Summary Statistics - Using In-Sample Data")
 print(tab)
 ```
 
-The strategy worked well considering how naive it was. 
-We first observe plot 2 of the cumulative returns,
-where both the long-short and the equal-weight portfolios
-delivered similar long term returns.
-In fact the Sharpe ratio for the equal-weight portfolio 
-is $1.03$, which means the strategy in this part
-is not outperforming the market.
+This problem is clearly 
 
-For the equal-weighted portfolio, 
-the skewness of returns is $0.188$,
-and the excess kurtosis is $1.405$,
-both are lower than the long-short portfolio.
-Especially for the kurtosis of $5.747$,
-this value is comparable to that of a student-t 
-distribution with 5 degrees of freedom
-(which has kurtosis $5$),
-implying the returns are extremely heavy tailed.
 
-To provide futher intuition to the results,
-we observe the form of the strategy:
 
-$$ W_1(t,j) = - \frac{1}{N} [ R_{cc}(t-1,j) - R_{cc,avg}(t-1) ] $$
 
-This weight is chosen based on whether the stock 
-outperform its peers in the previous day or not. 
-This strategy would work wonderfully if all of the big moves 
-reverses itself in the next day.
-However, we observe that a higher weight is given to
-the bigger movers in the previous day.
-Suppose a stock remains volatile for an extended period of time,
-we will have a greater risk exposure compared to 
-the equal-weighted portfolio,
-possibly contributing to heavier tails of returns.
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

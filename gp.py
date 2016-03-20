@@ -34,8 +34,8 @@ opt = {}
 opt['cumprod'] = True
 opt['num_stocks'] = 5
 opt['num_pts'] = 50
-opt['smooth'] = False
-opt['num_ema'] = 2
+opt['smooth'] = True
+opt['num_ema'] = 5
 opt['nugget'] = 1e-6
 opt['kernel'] = 'cubic'
 

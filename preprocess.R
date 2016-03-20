@@ -18,8 +18,14 @@ for (i in 0:99) {
 	each_col = in_data[,paste0("SC_",i)] / in_data[,paste0("SO_",i)]-1
 	in_data[,paste0("ROC_",i)] = each_col
 
+	each_col = in_data[,paste0("SO_",i)] / in_data[,paste0("SC_",i)]-1
+	in_data[,paste0("RCO_",i)] = each_col
+
 	each_col = exp(diff(log(in_data[,paste0("SC_",i)]))) - 1
 	in_data[,paste0("RCC_",i)] = c(0,each_col)
+
+	each_col = exp(diff(log(in_data[,paste0("SO_",i)]))) - 1
+	in_data[,paste0("ROO_",i)] = c(0,each_col)
 
 	# in_data[,paste0("RCCC_",i)] = cumprod(c(1,1+each_col))
 

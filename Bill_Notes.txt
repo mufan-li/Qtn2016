@@ -11,3 +11,17 @@ Notes
  - Run GP on higher dimensions
 
  - reconstruct prediction from EMA
+
+GP notes
+
+Cubic, ema(2), nugget 1e-6, 25
+	RMSE:  0.01287051 
+	ER:  0.4584648 
+
+Cubic, ema(1), nugget 1e-6, 25
+	RMSE:  0.01585954 
+	ER:  0.4647739 
+
+Cubic, ema(1), nugget 1e-2, 150
+	RMSE:  0.02177093 
+	ER:  0.4970623 

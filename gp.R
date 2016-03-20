@@ -43,9 +43,18 @@ for (j in n_stock_begin:n_stock_end) {
 		chains = 1
 		# init=list(list(mu=-10000,sigma=10), list(mu=20, sigma=0.1))
 		
-		gp_fit <- stan(file="gp_fit.stan",
+		temp_fit = NULL
+		while (is.null(temp_fit)) {
+			temp_fit = tryCatch({
+			    stan(file="gp_fit.stan",
 		                   data=c("N1","x1","y1"),
 		                   iter=iter,chains=chains)
+			}, error = function(e) {
+			    NULL
+			})
+		}
+
+		gp_fit <- temp_fit
 
 		# print(gp_fit)
 		gp_fit_df <- as.data.frame(gp_fit)
@@ -64,10 +73,19 @@ for (j in n_stock_begin:n_stock_end) {
 		iter = 100
 		chains = 1
 		
-		gp_pred <- stan(file="gp_pred.stan",
+		temp_pred = NULL
+		while (is.null(temp_pred)) {
+			temp_pred = tryCatch({
+			    stan(file="gp_pred.stan",
 		                   data=c("N1","x1","y1","N2","x2",
 		                   		"eta_sq","sigma_sq","inv_rho_sq"),
 		                   iter=iter,chains=chains)
+			}, error = function(e) {
+			    NULL
+			})
+		}
+
+		gp_pred <- temp_pred
 
 		# print(gp_pred)
 		gp_pred_df <- as.data.frame(gp_pred)
@@ -107,9 +125,10 @@ for (j in n_stock_begin:n_stock_end) {
 	# print(pred_plot2)
 
 	cat("RMSE:", with( pred_df, sqrt(mean((y_true-y_pred)^2)) ) ,"\n")
-	cat("ER:", with(pred_df, mean(
-		(diff(y_true) * (y_pred[-1]-y_true[-length(y_true)]) )<0
-	)), "\n")
+	# cat("ER:", with(pred_df, mean(
+	# 	(diff(y_true) * (y_pred[-1]-y_true[-length(y_true)]) )<0
+	# )), "\n")
+	cat("ER:", with(pred_df, mean( (y_true * y_pred)<0) ), "\n")
 
 	temp_df = pred_df[,3:4]
 	names(temp_df) = paste0("Stock_",j,c("_pred","_sigma"))
@@ -128,8 +147,7 @@ for (j in n_stock_begin:n_stock_end) {
 
 }
 
-
-
+write.csv(out_df,"gp_pred_stan.csv")
 
 
 

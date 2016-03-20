@@ -34,13 +34,19 @@ opt = {}
 opt['cumprod'] = True
 opt['num_stocks'] = 5
 opt['num_pts'] = 50
-opt['smooth'] = True
+opt['smooth'] = False
+opt['num_ema'] = 2
+opt['nugget'] = 1e-6
+opt['kernel'] = 'cubic'
 
 d = read_data.read()
 calc_returns.calc(d)
 
 M = opt['num_pts']
 N = opt['num_stocks']
+ND = opt['num_ema']
+NG = opt['nugget']
+K = opt['kernel']
 T = d['T']
 # T = 300
 roc = d['roc']
@@ -55,7 +61,6 @@ else:
     Y = roc
 
 if opt['smooth']:
-    ND = 2
     mpl = 2 / (ND + 1)
     ema = np.zeros([N, T - 2])
     for tt in xrange(ND):
@@ -77,8 +82,8 @@ for ii in xrange(N):
         y = Y[ii, start: end]
         gp = gaussian_process.GaussianProcess(
             # corr='squared_exponential', 
-            corr='cubic',
-            nugget=1e-6,
+            corr=K,
+            nugget=NG,
             # theta0=1e-2, 
             # thetaL=1e-4, 
             # thetaU=1e-1

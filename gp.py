@@ -1,3 +1,5 @@
+from __future__ import division
+
 import numpy as np
 from sklearn import gaussian_process
 
@@ -30,23 +32,38 @@ import calc_returns
 
 opt = {}
 opt['cumprod'] = True
-opt['num_stocks'] = 3
-opt['num_pts'] = 25
+opt['num_stocks'] = 5
+opt['num_pts'] = 50
+opt['smooth'] = True
 
 d = read_data.read()
 calc_returns.calc(d)
 
 M = opt['num_pts']
-T = d['T']
-roc = d['roc']
 N = opt['num_stocks']
+T = d['T']
+# T = 300
+roc = d['roc']
+
 roc_prod = np.cumprod(1 + roc, axis=1)
 roc_prod = roc_prod[:N, :]
 
+# Pre-process
 if opt['cumprod']:
     Y = roc_prod
 else:
     Y = roc
+
+if opt['smooth']:
+    ND = 2
+    mpl = 2 / (ND + 1)
+    ema = np.zeros([N, T - 2])
+    for tt in xrange(ND):
+        ema[:, tt] = np.mean(Y[:, :tt + 1], axis=1)
+    for tt in xrange(ND, T - 2):
+        ema[:, tt] = (Y[:, tt] - ema[:, tt - 1]) * mpl + ema[:, tt - 1]
+    Y = ema
+
 
 y_pred = np.zeros([N, T - 2 - M])
 y_sigma_pred = np.zeros([N, T - 2 - M])
@@ -59,29 +76,39 @@ for ii in xrange(N):
         x = np.reshape(np.arange(M), [M, 1])
         y = Y[ii, start: end]
         gp = gaussian_process.GaussianProcess(
-            corr='squared_exponential', 
-            # corr='cubic',
-            nugget=0.01,
-            theta0=1e-2, thetaL=1e-4, thetaU=1e-1)
+            # corr='squared_exponential', 
+            corr='cubic',
+            nugget=1e-6,
+            # theta0=1e-2, 
+            # thetaL=1e-4, 
+            # thetaU=1e-1
+        )
         gp.fit(x, y)
         x_ = np.array([[M]])
         _y_pred, _s_pred = gp.predict(x_, eval_MSE=True)
         y_pred[ii, tt] = _y_pred[0]
         y_sigma_pred[ii, tt] = np.sqrt(_s_pred)
 
+        # time = np.arange(start, end + 1)
+        # _time  = np.reshape(time, [-1, 1])
+        # _y_pred, _s_pred = gp.predict(_time, eval_MSE=True)
+        # plt.plot(time, Y[ii, start: end + 1], 'r.')
+        # plt.plot(time, _y_pred, 'k.')
+        # plt.fill_between(time, _y_pred - 1.96 * _s_pred, 
+        #     _y_pred + 1.96 * _s_pred, color='b', alpha=0.5)
+        # plt.show()
+
 time = np.arange(T - 2 - M)
 plt.plot(time, Y[0, M: ], 'r.')
-plt.plot(time, y_pred[0], 'r:')
+plt.plot(time, y_pred[0], 'k.')
 plt.fill_between(time, y_pred[0] - 1.96 * y_sigma_pred[0], 
     y_pred[0] + 1.96 * y_sigma_pred[0], color='b', alpha=0.5)
 
+# Post-process
 if opt['cumprod']:
     roc_pred = np.zeros([N, T - 2 - M])
     roc_sigma_pred = np.zeros([N, T - 2 - M])
     for tt in xrange(T - 2 - M):
-        # print roc_prod.shape
-        # print y_pred.shape
-        # print roc_pred.shape
         roc_pred[:, tt] = y_pred[:, tt] / roc_prod[:, tt + M - 1] - 1
         roc_sigma_pred[:, tt] = y_sigma_pred[:, tt] / roc_prod[:, tt + M - 1]
 else:

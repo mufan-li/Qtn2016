@@ -2,7 +2,6 @@ from __future__ import division
 
 import numpy as np
 from sklearn import gaussian_process
-
 import matplotlib.pyplot as plt
 
 # def f(x):
@@ -26,6 +25,7 @@ import matplotlib.pyplot as plt
 # x = x.ravel()
 # plt.fill_between(x, y1, y2, color='b', alpha=0.5)
 # plt.show()
+
 
 def run_gp(opt, fout):
     M = opt['num_pts']
@@ -55,7 +55,6 @@ def run_gp(opt, fout):
             ema[:, tt] = (Y[:, tt] - ema[:, tt - 1]) * mpl + ema[:, tt - 1]
         Y = ema
 
-
     y_pred = np.zeros([N, T - 2 - M])
     y_sigma_pred = np.zeros([N, T - 2 - M])
     for ii in xrange(N):
@@ -64,36 +63,43 @@ def run_gp(opt, fout):
                 print ii, tt
             start = tt
             end = tt + M
-            x = np.reshape(np.arange(M), [M, 1])
+            x = np.reshape(np.linspace(0, 1, M), [M, 1])
             y = Y[ii, start: end]
+
             gp = gaussian_process.GaussianProcess(
-                # corr='squared_exponential', 
+                # corr='squared_exponential',
                 corr=K,
-                nugget=NG,
-                # theta0=1e-2, 
-                # thetaL=1e-4, 
+                # nugget=NG,
+                # theta0=1e-2,
+                # thetaL=1e-4,
                 # thetaU=1e-1
+                # thetaU=1e-0
             )
             gp.fit(x, y)
-            x_ = np.array([[M]])
-            _y_pred, _s_pred = gp.predict(x_, eval_MSE=True)
-            y_pred[ii, tt] = _y_pred[0]
-            y_sigma_pred[ii, tt] = np.sqrt(_s_pred)
+            # x_ = np.array([[M + 1 / M]])
+            # _y_pred, _s_pred = gp.predict(x_, eval_MSE=True)
+            # y_pred[ii, tt] = _y_pred[0]
+            # y_sigma_pred[ii, tt] = np.sqrt(_s_pred)
+            # print 'h', y_pred[ii, tt], y_sigma_pred[ii, tt]
 
-            # time = np.arange(start, end + 1)
-            # _time  = np.reshape(time, [-1, 1])
-            # _y_pred, _s_pred = gp.predict(_time, eval_MSE=True)
+            time = np.linspace(0, (M + 1) / M, M + 1)
+            _time = np.reshape(time, [-1, 1])
+            _y_pred, _s_pred = gp.predict(_time, eval_MSE=True)
+            _s_pred = np.sqrt(_s_pred)
+            # print 'g', _y_pred[-1], _s_pred[-1]
+            y_pred[ii, tt] = _y_pred[-1]
+            y_sigma_pred[ii, tt] = _s_pred[-1]
             # plt.plot(time, Y[ii, start: end + 1], 'r.')
             # plt.plot(time, _y_pred, 'k.')
-            # plt.fill_between(time, _y_pred - 1.96 * _s_pred, 
-            #     _y_pred + 1.96 * _s_pred, color='b', alpha=0.5)
+            # plt.fill_between(time, _y_pred - 1.96 * _s_pred,
+            #                  _y_pred + 1.96 * _s_pred, color='b', alpha=0.5)
             # plt.show()
 
     time = np.arange(T - 2 - M)
-    plt.plot(time, Y[0, M: ], 'r.')
+    plt.plot(time, Y[0, M:], 'r.')
     plt.plot(time, y_pred[0], 'k.')
-    plt.fill_between(time, y_pred[0] - 1.96 * y_sigma_pred[0], 
-        y_pred[0] + 1.96 * y_sigma_pred[0], color='b', alpha=0.5)
+    plt.fill_between(time, y_pred[0] - 1.96 * y_sigma_pred[0],
+                     y_pred[0] + 1.96 * y_sigma_pred[0], color='b', alpha=0.5)
 
     # Post-process
     if opt['cumprod']:
@@ -101,7 +107,8 @@ def run_gp(opt, fout):
         roc_sigma_pred = np.zeros([N, T - 2 - M])
         for tt in xrange(T - 2 - M):
             roc_pred[:, tt] = y_pred[:, tt] / roc_prod[:, tt + M - 1] - 1
-            roc_sigma_pred[:, tt] = y_sigma_pred[:, tt] / roc_prod[:, tt + M - 1]
+            roc_sigma_pred[:, tt] = y_sigma_pred[
+                :, tt] / roc_prod[:, tt + M - 1]
     else:
         roc_pred = y_pred
         roc_sigma_pred = y_sigma_pred
@@ -139,11 +146,14 @@ if __name__ == '__main__':
 
     opt = {}
     opt['cumprod'] = True
-    opt['num_stocks'] = 5
-    opt['num_pts'] = 50
-    opt['smooth'] = True
+    opt['num_stocks'] = 1
+    opt['num_pts'] = 150
+    opt['smooth'] = False
     opt['num_ema'] = 2
-    opt['nugget'] = 1e-6
+    # opt['nugget'] = 0
+    opt['nugget'] = 1e-2
+    # opt['nugget'] = 0
+    # opt['kernel'] = 'squared_exponential'
     opt['kernel'] = 'cubic'
 
     run_gp(opt, 'gp_pred.csv')

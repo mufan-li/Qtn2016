@@ -19,28 +19,29 @@ source("MSwM_functions.R")
 in_data = read.csv("in_sample_data_headers2.csv")
 out_df = NULL
 n_stock_begin = 0
-n_stock_end = 99
-N_in = 10
+n_stock_end = 0
+N_in = 100
 
 for (j in n_stock_begin:n_stock_end) {
 
 	pred_df = NULL
-
-	for (i in 1:(nrow(in_data)-N_in)) {
-		y = in_data[0:N_in + i,paste0("ROC_",j)]
-		y = cumprod(y+1)
+	N_pred = (nrow(in_data)-N_in)
+	# N_pred = 20
+	for (i in (1:N_pred)) {
+		y_org = in_data[0:N_in + i,paste0("ROC_",j)]
+		y = cumprod(y_org+1)
 		y0 = y[1:N_in]
-		# each_pred = gp_pred(y, y0)
 
 		n_ema = 2
 		y1 = EMA(y0, n = n_ema)
+		# note length changes when taken EMA
 		y1 = y1[n_ema:length(y1)]
 
 		N1 = length(y1)
 		x1 = 1:N1
 		D = 1
 		iter = 100
-		chains = 1
+		chains = 2
 		# init=list(list(mu=-10000,sigma=10), list(mu=20, sigma=0.1))
 		
 		temp_fit = NULL
@@ -71,7 +72,7 @@ for (j in n_stock_begin:n_stock_end) {
 		x2 = array(N1+(1:N2), dim = length(N1+(1:N2)))
 
 		iter = 100
-		chains = 1
+		chains = 2
 		
 		temp_pred = NULL
 		while (is.null(temp_pred)) {
@@ -95,10 +96,11 @@ for (j in n_stock_begin:n_stock_end) {
 		#################
 
 		y2 = parse_results(gp_pred_df, "y2", fn_str = "mean")
-		y2 = rm_ema(y2, y1[N1], n_ema)
+		y2 = rm_ema(y2, y1[N1], 1)
 
 		y2sd = parse_results(gp_pred_df, "y2", fn_str = "sd")
 		y2sd = rm_ema(y2sd, 0, n_ema)
+		
 		# pred_plot = ggplot(NULL) +
 		# 	geom_ribbon(aes(x=x2,ymin=y2-y2sd*1.96,ymax=y2+y2sd*1.96), 
 		# 		fill = "grey70") +
@@ -111,18 +113,13 @@ for (j in n_stock_begin:n_stock_end) {
 		# print(y2sd)
 
 		# remove cumprod
-		each_pred = data.frame(x = i+N_in+1, y_true = y[N1+1]/y[N1]-1, 
-								y_pred = y2/y[N1]-1, sd = y2sd/y[N1])
+		each_pred = data.frame(x = i+N_in+1, y_true = y_org[N_in+1], 
+							y_pred = y2/y[N_in]-1, sd = y2sd/y[N1])
+		# each_pred = data.frame(x = i+N_in+1, y_true = y[N_in+1], 
+		# 					y_pred = y2, sd = y2sd/y[N1])
 
 		pred_df = rbind(pred_df, each_pred)
 	}
-
-	# pred_plot2 = ggplot(pred_df,aes(x=x)) + 
-	# 	geom_ribbon(aes(ymin=y_pred-sd*1.96,ymax=y_pred+sd*1.96), 
-	# 			fill = "grey70", alpha=0.5) +
-	# 	geom_point(aes(y=y_pred), color = "red") +
-	# 	geom_point(aes(y=y_true))
-	# print(pred_plot2)
 
 	cat("RMSE:", with( pred_df, sqrt(mean((y_true-y_pred)^2)) ) ,"\n")
 	# cat("ER:", with(pred_df, mean(
@@ -139,15 +136,21 @@ for (j in n_stock_begin:n_stock_end) {
 	temp_out_df = rbind(temp_empty_df, temp_df)
 
 	if (is.null(out_df)) {
-		temp_out_df$Date = in_data$Date
+		temp_out_df$Date = in_data$Date[1:nrow(temp_out_df)]
 		out_df = temp_out_df[,c(3,1,2)]
 	} else {
 		out_df = cbind(out_df,temp_out_df)
 	}
 
+	write.csv(out_df,"gp_pred_stan.csv")
 }
 
-write.csv(out_df,"gp_pred_stan.csv")
+# pred_plot2 = ggplot(pred_df,aes(x=x)) + 
+# 	geom_ribbon(aes(ymin=y_pred-sd*1.96,ymax=y_pred+sd*1.96), 
+# 			fill = "grey70", alpha=0.5) +
+# 	geom_point(aes(y=y_pred), color = "red") +
+# 	geom_point(aes(y=y_true))
+# print(pred_plot2)
 
 
 

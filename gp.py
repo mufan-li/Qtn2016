@@ -4,6 +4,8 @@ import numpy as np
 from sklearn import gaussian_process
 import matplotlib.pyplot as plt
 
+import hmm_functions as ff
+
 # def f(x):
 #     return x * np.sin(x)
 
@@ -35,7 +37,7 @@ def run_gp(opt, fout):
     K = opt['kernel']
     T = d['T']
     # T = 300
-    roc = d['roc']
+    roc = d['roc'][6:]
 
     roc_prod = np.cumprod(1 + roc, axis=1)
     roc_prod = roc_prod[:N, :]
@@ -46,57 +48,79 @@ def run_gp(opt, fout):
     else:
         Y = roc
 
+    # plt.plot(np.arange(T-2), Y[0])
+
     if opt['smooth']:
-        mpl = 2 / (ND + 1)
-        ema = np.zeros([N, T - 2])
-        for tt in xrange(ND):
-            ema[:, tt] = np.mean(Y[:, :tt + 1], axis=1)
-        for tt in xrange(ND, T - 2):
-            ema[:, tt] = (Y[:, tt] - ema[:, tt - 1]) * mpl + ema[:, tt - 1]
-        Y = ema
+        # mpl = 2 / (ND + 1)
+        # ema = np.zeros([N, T - 2])
+        # for tt in xrange(ND):
+        #     ema[:, tt] = np.mean(Y[:, :tt + 1], axis=1)
+        # for tt in xrange(ND, T - 2):
+        #     ema[:, tt] = (Y[:, tt] - ema[:, tt - 1]) * mpl + ema[:, tt - 1]
+        # Y = ema
+        Y = ff.ema(Y, ND)
+    # plt.plot(np.arange(T-2), Y[0])
+    # plt.show()
 
     y_pred = np.zeros([N, T - 2 - M])
     y_sigma_pred = np.zeros([N, T - 2 - M])
     for ii in xrange(N):
+        sss = 0
         for tt in xrange(T - 2 - M):
             if tt % 10 == 0:
                 print ii, tt
             start = tt
             end = tt + M
-            x = np.reshape(np.linspace(0, 1, M), [M, 1])
+            # x = np.reshape(np.linspace(0, 1, M), [-1, 1])
+            x = np.reshape(np.linspace(0, M - 1, M), [-1, 1])
             y = Y[ii, start: end]
+            # x = np.reshape(np.linspace(0, (M + 1) / M, M + 1), [-1, 1])
+            # y = Y[ii, start: end + 1]
 
             gp = gaussian_process.GaussianProcess(
+                regr='quadratic',
                 # corr='squared_exponential',
+                # corr='absolute_exponential',
                 corr=K,
-                # nugget=NG,
-                # theta0=1e-2,
-                # thetaL=1e-4,
-                # thetaU=1e-1
+                nugget=NG,
+                theta0=1e-2,
+                thetaL=1e-12,
+                thetaU=1e-1,
+                normalize=True,
+
+                # random_start=5
                 # thetaU=1e-0
             )
             gp.fit(x, y)
-            # x_ = np.array([[M + 1 / M]])
-            # _y_pred, _s_pred = gp.predict(x_, eval_MSE=True)
-            # y_pred[ii, tt] = _y_pred[0]
-            # y_sigma_pred[ii, tt] = np.sqrt(_s_pred)
+            # x_ = np.array([[(M + 1) / M]])
+            x_ = np.array([[M]])
+            _y_pred, _s_pred = gp.predict(x_, eval_MSE=True)
+            y_pred[ii, tt] = _y_pred[0]
+
+            sss += (y_pred[ii, tt] / Y[ii, tt + M - 1] - 1) * roc[ii, tt + M] >= 0
+            # print _y_pred, _s_pred
+            y_sigma_pred[ii, tt] = np.sqrt(_s_pred)
             # print 'h', y_pred[ii, tt], y_sigma_pred[ii, tt]
 
-            time = np.linspace(0, (M + 1) / M, M + 1)
-            _time = np.reshape(time, [-1, 1])
-            _y_pred, _s_pred = gp.predict(_time, eval_MSE=True)
-            _s_pred = np.sqrt(_s_pred)
-            # print 'g', _y_pred[-1], _s_pred[-1]
-            y_pred[ii, tt] = _y_pred[-1]
-            y_sigma_pred[ii, tt] = _s_pred[-1]
+            # # time = np.linspace(0, (M + 1) / M, M + 1)
+            # time = np.linspace(0, M, M + 1)
+            # _time = np.reshape(time, [-1, 1])
+            # _y_pred, _s_pred = gp.predict(_time, eval_MSE=True)
+            # _s_pred = np.sqrt(_s_pred)
+            # # print 'g', _y_pred[-1], _s_pred[-1]
+            # # y_pred[ii, tt] = _y_pred[-1]
+            # # y_sigma_pred[ii, tt] = _s_pred[-1]
+
             # plt.plot(time, Y[ii, start: end + 1], 'r.')
             # plt.plot(time, _y_pred, 'k.')
             # plt.fill_between(time, _y_pred - 1.96 * _s_pred,
             #                  _y_pred + 1.96 * _s_pred, color='b', alpha=0.5)
             # plt.show()
+        print 'sss', sss / (T - M - 2)
 
     time = np.arange(T - 2 - M)
     plt.plot(time, Y[0, M:], 'r.')
+    plt.plot(time, roc_prod[0, M:], 'g.')
     plt.plot(time, y_pred[0], 'k.')
     plt.fill_between(time, y_pred[0] - 1.96 * y_sigma_pred[0],
                      y_pred[0] + 1.96 * y_sigma_pred[0], color='b', alpha=0.5)
@@ -105,13 +129,25 @@ def run_gp(opt, fout):
     if opt['cumprod']:
         roc_pred = np.zeros([N, T - 2 - M])
         roc_sigma_pred = np.zeros([N, T - 2 - M])
-        for tt in xrange(T - 2 - M):
-            roc_pred[:, tt] = y_pred[:, tt] / roc_prod[:, tt + M - 1] - 1
-            roc_sigma_pred[:, tt] = y_sigma_pred[
-                :, tt] / roc_prod[:, tt + M - 1]
+        if opt['smooth']:
+            y_pred = ff.rm_ema(y_pred, Y[:N, M-1: T-3], ND)
+            pass
+        roc_pred = y_pred / roc_prod[:N, M-1: T-3] - 1
+        roc_sigma_pred = y_sigma_pred / roc_prod[:N, M-1: T-3]
     else:
+        if opt['smooth']:
+            y_pred = ff.rm_ema(y_pred, Y[:N, M-1: T-3], ND)
         roc_pred = y_pred
         roc_sigma_pred = y_sigma_pred
+
+    NN = 10
+    print roc_pred[:, :20]
+    print roc[:N, M:M+20]
+    print roc_pred[:, :NN] * roc[:N, M:M+NN] >= 0
+    er = np.mean(roc_pred[:, :-1] * roc[:N, M + 1:] < 0)
+    # er = np.mean(roc_pred[:, :NN] * roc[:N, M:M+NN] < 0)
+    rmse = np.sqrt(np.mean((roc_pred - roc[:N, M:]) ** 2))
+    print 'ER: {:.4f} RMSE: {:.4f}'.format(er, rmse)
 
     def output_csv():
         with open(fout, 'w') as f:
@@ -147,13 +183,12 @@ if __name__ == '__main__':
     opt = {}
     opt['cumprod'] = True
     opt['num_stocks'] = 1
-    opt['num_pts'] = 150
+    opt['num_pts'] = 100
     opt['smooth'] = False
-    opt['num_ema'] = 2
-    # opt['nugget'] = 0
-    opt['nugget'] = 1e-2
-    # opt['nugget'] = 0
+    opt['num_ema'] = 5
+    opt['nugget'] = 0
+    # opt['nugget'] = 1e-2
+    # opt['nugget'] = 1e-5
     # opt['kernel'] = 'squared_exponential'
     opt['kernel'] = 'cubic'
-
     run_gp(opt, 'gp_pred.csv')

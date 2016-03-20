@@ -64,9 +64,11 @@ def calc(d):
     ctvl_ = tvl_ / mtvl_
     ind = ind[:, 3:]
 
+    d['rcc_'] = rcc_
     d['rcc'] = rcc
     d['rco'] = rco
     d['roc'] = roc
+    d['roc_'] = roc_
     d['roo'] = roo
     d['ind'] = ind
     d['croo'] = croo

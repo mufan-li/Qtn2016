@@ -4,10 +4,10 @@ source("MSwM_functions.R")
 in_data = read.csv("in_sample_data_headers2.csv")
 in_data2 = in_data[,c("Date",names(in_data)[grepl("ROC_",names(in_data))])]
 
-pred_data = read.csv("gp_pred.csv")
+pred_data = read.csv("gp_pred_stan_test.csv")
 pred_data = pred_data[pred_data$Stock_0_pred != 99,]
 merge_data = merge(pred_data, 
-					in_data2, by.x = "date", by.y = "Date")
+					in_data2, by.x = "Date", by.y = "Date")
 
 # print(with(merge_data, sqrt(mean((Stock_0_pred - ROC_0)^2))))
 # print(with(merge_data, mean(Stock_0_pred*ROC_0<0) ))

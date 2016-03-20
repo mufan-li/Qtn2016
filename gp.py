@@ -37,7 +37,7 @@ def run_gp(opt, fout):
     K = opt['kernel']
     T = d['T']
     # T = 300
-    roc = d['roc'][6:]
+    roc = d['roc'][11:]
 
     roc_prod = np.cumprod(1 + roc, axis=1)
     roc_prod = roc_prod[:N, :]
@@ -182,13 +182,14 @@ if __name__ == '__main__':
 
     opt = {}
     opt['cumprod'] = True
-    opt['num_stocks'] = 1
-    opt['num_pts'] = 100
+    opt['num_stocks'] = 100
+    opt['num_pts'] = 50
     opt['smooth'] = False
     opt['num_ema'] = 5
     opt['nugget'] = 0
     # opt['nugget'] = 1e-2
-    # opt['nugget'] = 1e-5
-    # opt['kernel'] = 'squared_exponential'
-    opt['kernel'] = 'cubic'
+    opt['nugget'] = 1e-4
+    opt['kernel'] = 'squared_exponential'
+    # opt['kernel'] = 'absolute_exponential'
+    # opt['kernel'] = 'cubic'
     run_gp(opt, 'gp_pred.csv')

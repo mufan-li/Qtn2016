@@ -44,7 +44,10 @@ function part2()
         disp('a:');
         disp(a);
         disp('sharpe:');
-        disp(sharpe(w2val, roc) * sqrt(252));
+        [sr, dsr, mrp, srp] = sharpe(w2val, roc);
+        disp(sr * sqrt(252));
+        disp(mrp);
+        disp(srp);
     end
 
     T = size(crcc_, 2);
@@ -76,7 +79,10 @@ function part2()
     a = train(tcrcc_, tcroo, tcroc_, tcrco, tctvl_, tcrvp_, troc);
     w2val = w2(a, vcrcc_, vcroo, vcroc_, vcrco, vctvl_, vcrvp_);
     disp('validation sharpe:');
-    disp(sharpe(w2val, vroc) * sqrt(252));
+    [sr, dsr, mrp, srp] = sharpe(w2val, vroc);
+    disp(sr * sqrt(252));
+    disp(mrp);
+    disp(srp);
     output_csv('data_part2_val.team_A.csv', datetime, w2val, vroc);
     output_coeff('coeff_part2_val.team_A.csv', 'a', a);
 

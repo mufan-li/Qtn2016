@@ -1,4 +1,4 @@
-function [sr, dsrdw] = sharpe(w, roc, ind)
+function [sr, dsrdw, mrp, srp] = sharpe(w, roc, ind)
     N = size(w, 1);
     T = size(w, 2);
     % [1, T]
@@ -25,7 +25,7 @@ function [sr, dsrdw] = sharpe(w, roc, ind)
     dmrpdw = 1 / T * drpdw;
     dsrpdw = 1 / (T - 1) / srp * bsxfun(@times, (rp - mrp), drpdw);
     dsrdw = (dmrpdw * srp - dsrpdw * mrp) / (srp ^ 2);
-
+    
     if nargin > 2
         dsrdw = dsrdw .* ((w .* ind) > 0);
     end

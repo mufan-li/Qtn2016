@@ -14,6 +14,26 @@ function part2()
     crvp_ = d.crvp_;
     ctvl_ = d.ctvl_;
 
+    function fun = part2f(crcc_, croo, croc_, crco, ctvl_, crvp_, roc)
+        N = size(ctvl_, 1);
+        T = size(ctvl_, 2);
+
+        function [f, g] = obj(a)
+            [w2val, dw2da] = w2(a, crcc_, croo, croc_, crco, ctvl_, crvp_);
+            [sr, dsrdw] = sharpe(w2val, roc);
+            w2val = w2(a, crcc_, croo, croc_, crco, ctvl_, crvp_);
+            sr = sharpe(w2val, roc);
+            f = -sr;
+            dsrdw_ = reshape(dsrdw, [1, N, T]);
+            g = bsxfun(@times, dsrdw_, dw2da);
+            g = reshape(sum(sum(g, 2), 3), size(a));
+            g = -g;
+        end
+
+        fun = @(a) obj(a);
+    end
+
+
     function a = train(crcc_, croo, croc_, crco, ctvl_, crvp_, roc)
         a0 = ones(12, 1) * 0.1;
         options = optimoptions('fminunc','GradObj', 'on');
@@ -27,21 +47,25 @@ function part2()
         disp(sharpe(w2val, roc) * sqrt(252));
     end
 
-    split = 200;
-    tcrcc_ = crcc_(:, split : end);
-    tcroo = croo(:, split : end);
-    tcroc_ = croc_(:, split : end);
-    tcrco = crco(:, split : end);
-    tctvl_ = ctvl_(:, split : end);
-    tcrvp_ = crvp_(:, split : end);
-    troc = roc(:, split : end);
-    vcrcc_ = crcc_(:, 1 : split);
-    vcroo = croo(:, 1 : split);
-    vcroc_ = croc_(:, 1 : split);
-    vcrco = crco(:, 1 : split);
-    vctvl_ = ctvl_(:, 1 : split);
-    vcrvp_ = crvp_(:, 1 : split);
-    vroc = roc(:, 1 : split);
+    T = size(crcc_, 2);
+    tsplit = 200 : T;
+    vsplit = 1 : 200;
+    tcrcc_ = crcc_(:, tsplit);
+    tcroo = croo(:, tsplit);
+    tcroc_ = croc_(:, tsplit);
+    tcrco = crco(:, tsplit);
+    tctvl_ = ctvl_(:, tsplit);
+    tcrvp_ = crvp_(:, tsplit);
+    troc = roc(:, tsplit);
+    tind = ind(:, tsplit);
+    vcrcc_ = crcc_(:, vsplit);
+    vcroo = croo(:, vsplit);
+    vcroc_ = croc_(:, vsplit);
+    vcrco = crco(:, vsplit);
+    vctvl_ = ctvl_(:, vsplit);
+    vcrvp_ = crvp_(:, vsplit);
+    vroc = roc(:, vsplit);
+    vind = ind(:, vsplit);
 
     % a = ones(12, 1);
     % w2val = w2(a, crcc_, croo, croc_, crco, ctvl_, crvp_);

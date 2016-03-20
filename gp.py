@@ -30,14 +30,16 @@ import calc_returns
 
 opt = {}
 opt['cumprod'] = True
+opt['num_stocks'] = 3
+opt['num_pts'] = 25
 
 d = read_data.read()
 calc_returns.calc(d)
 
-M = 25
+M = opt['num_pts']
 T = d['T']
 roc = d['roc']
-N = 1
+N = opt['num_stocks']
 roc_prod = np.cumprod(1 + roc, axis=1)
 roc_prod = roc_prod[:N, :]
 

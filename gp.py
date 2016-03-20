@@ -118,12 +118,12 @@ def run_gp(opt, fout):
             # plt.show()
         print 'sss', sss / (T - M - 2)
 
-    time = np.arange(T - 2 - M)
-    plt.plot(time, Y[0, M:], 'r.')
-    plt.plot(time, roc_prod[0, M:], 'g.')
-    plt.plot(time, y_pred[0], 'k.')
-    plt.fill_between(time, y_pred[0] - 1.96 * y_sigma_pred[0],
-                     y_pred[0] + 1.96 * y_sigma_pred[0], color='b', alpha=0.5)
+    # time = np.arange(T - 2 - M)
+    # plt.plot(time, Y[0, M:], 'r.')
+    # plt.plot(time, roc_prod[0, M:], 'g.')
+    # plt.plot(time, y_pred[0], 'k.')
+    # plt.fill_between(time, y_pred[0] - 1.96 * y_sigma_pred[0],
+    #                 y_pred[0] + 1.96 * y_sigma_pred[0], color='b', alpha=0.5)
 
     # Post-process
     if opt['cumprod']:
@@ -182,7 +182,7 @@ if __name__ == '__main__':
 
     opt = {}
     opt['cumprod'] = True
-    opt['num_stocks'] = 100
+    opt['num_stocks'] = 10
     opt['num_pts'] = 50
     opt['smooth'] = False
     opt['num_ema'] = 5

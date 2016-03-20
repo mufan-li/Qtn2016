@@ -20,10 +20,10 @@ source('MSwM_functions.R')
 # setwd("~/GitHub/Qtn2016/")
 input_data = read.csv("in_sample_data_headers2.csv")
 pred_df = NULL
-N_in = 250
-n_diff= 1
+N_in = 500
+n_diff= 0
 n_ema = 1
-j = 2
+j = 0
 y_name = paste0("ROC_",j)
 x_names = paste0(c("ROC_","RCC_","RVP_"),j)
 
@@ -116,10 +116,10 @@ pred_plot2 = ggplot(pred_df,aes(x=x)) +
 			fill = "grey70", alpha = 0.5) +
 	geom_point(aes(y=y_pred), color = "red") +
 	geom_point(aes(y=y_true))
-print(pred_plot2)
+# print(pred_plot2)
 
 cat("RMSE: ", with(pred_df, sqrt(mean((y_true - y_pred)^2))), "\n")
-cat("Error Rate: ", with(pred_df, mean((y_true * y_pred)<0)), "\n")
+cat("ER: ", with(pred_df, mean((y_true * y_pred)<0)), "\n")
 
 
 

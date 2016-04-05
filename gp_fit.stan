@@ -18,8 +18,11 @@ transformed parameters {
 } 
 model {
   matrix[N1,N1] Sigma;
+<<<<<<< HEAD
   matrix[N1,N1] L;
   
+=======
+>>>>>>> 127b5334cd1cbde60b359567ce8b3427fce895b5
   // off-diagonal elements
   for (i in 1:(N1-1)) {
     for (j in (i+1):N1) {
@@ -30,6 +33,7 @@ model {
   // diagonal elements
   for (k in 1:N1)
     Sigma[k,k] <- eta_sq + sigma_sq;  // + jitter
+<<<<<<< HEAD
   
   L <- cholesky_decompose(Sigma);
 
@@ -37,4 +41,10 @@ model {
   inv_rho_sq ~ cauchy(0,5);
   sigma_sq ~ cauchy(0,5);
   y1 ~ multi_normal_cholesky(mu,L);
+=======
+  eta_sq ~ cauchy(0,5);
+  inv_rho_sq ~ cauchy(0,5);
+  sigma_sq ~ cauchy(0,5);
+  y1 ~ multi_normal(mu,Sigma);
+>>>>>>> 127b5334cd1cbde60b359567ce8b3427fce895b5
 }

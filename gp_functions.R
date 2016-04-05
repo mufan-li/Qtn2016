@@ -18,7 +18,11 @@ parse_results <- function(df, name, fn_str = "mean") {
 	eval(parse(text = parse_value))
 }
 
+<<<<<<< HEAD
 gp_pred_fn <- function(y, y0) {
+=======
+gp_pred <- function(y, y0) {
+>>>>>>> 127b5334cd1cbde60b359567ce8b3427fce895b5
 	n_ema = 2
 	y1 = EMA(y0, n = n_ema)
 	y1 = y1[n_ema:length(y1)]

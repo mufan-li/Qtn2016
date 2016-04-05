@@ -4,7 +4,7 @@ source("MSwM_functions.R")
 in_data = read.csv("in_sample_data_headers2.csv")
 in_data2 = in_data[,c("Date",names(in_data)[grepl("ROC_",names(in_data))])]
 
-pred_data = read.csv("lstm_pred.csv")
+pred_data = read.csv("lstm_pred_400.csv")
 
 names(pred_data)[grepl("ROC_",names(pred_data))] = 
 	gsub("ROC","ROC_MR",names(pred_data)[grepl("ROC_",names(pred_data))])
@@ -30,7 +30,7 @@ for (i in 0:(n_stock-1)) {
 
 	RMSE[i+1] = sqrt(mean((y_true-y_pred)^2))
 	ER[i+1] = sum(y_true * y_pred < 0)/sum(y_true != 0)
-	cat(sum(y_true * y_pred < 0),sum(y_true != 0), "\n")
+	# cat(sum(y_true * y_pred < 0),sum(y_true != 0), "\n")
 }
 cat("RMSE: ",mean(RMSE),"\n")
 cat("ER: ",mean(ER),"\n")

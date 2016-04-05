@@ -1,0 +1,286 @@
+---
+title: "Solution Description - Part (4)"
+author: "Team A - Mufan Li, Mengye Ren, Tian Xia"
+date: "March 20, 2016"
+output: pdf_document
+---
+
+We first display the four time series plots.
+
+```{r, echo=FALSE, warning=FALSE, include=FALSE, cache=FALSE}
+# preprocess
+library(ggplot2)
+library(xtable)
+options(xtable.comment = FALSE)
+library(moments)
+library(PerformanceAnalytics)
+setwd("~/GitHub/quantathon-2016/")
+
+file_name = "data_part4.team_A.csv"
+data_part1 = read.csv(file_name)
+data_part1$date = as.Date(as.character(data_part1$yyyymmdd),
+                              format = "%Y%m%d")
+names(data_part1) = gsub("return","returns",names(data_part1))
+rows_selected = data_part1$returns != 99
+data_part1 = data_part1[rows_selected,]
+
+# temp_ret = as.numeric(rowMeans(in_data3[-1,] * W_df))
+# mean(temp_ret)/sd(temp_ret)
+
+in_data = read.csv("in_sample_data_headers.csv")
+ind_df = in_data[c(rows_selected,rep(F,1003 - length(rows_selected))), grepl("IND_",names(in_data))]
+W_df = data_part1[,grepl("Stock_",names(data_part1))]
+# W_df[W_df > 1000] = 0
+data_part1[,grepl("Stock_",names(data_part1))] = W_df * (W_df * ind_df >= 0)
+
+```
+
+```{r, echo=FALSE, warning=FALSE}
+# Daily LS Returns
+ggplot(data_part1, aes(x=date, y=returns)) + geom_line() +
+  scale_x_date("Date") + scale_y_continuous("Returns") +
+  ggtitle("1. Daily Long-Short Returns")
+```
+
+```{r, echo=FALSE, warning=FALSE}
+# Cumulative LS Returns
+# Find Equal Weighted Return
+in_data2 = in_data[,grepl("SC",names(in_data))]
+
+for (each_name in names(in_data2)) {
+  in_data2[-1,each_name] =
+    exp(diff(log(in_data2[,each_name])))-1
+}
+in_data3 = in_data2[-1,]
+equal_weight_returns = as.numeric(rowMeans(in_data3))[-1]
+equal_weight_returns = equal_weight_returns[c(rows_selected,rep(F,1003 - length(rows_selected)))]
+# cumsum(log(1+returns))
+# as.Date(data_part1$date)
+# plot(data_part1[,c("date","returns")])
+# length(equal_weight_returns)
+ggplot(data_part1, aes(x=date, y=cumsum(log(returns+1)))) + 
+  geom_line(aes(color="Long-Short Portfolio") ) +
+  geom_line(aes(y=cumsum(log(1+equal_weight_returns)),
+                color="Equal-Weight Portfolio")) +
+  scale_x_date("Date") + scale_y_continuous("Cumulative Log-Returns") +
+  ggtitle("2. Cumulative Long-Short Returns - In Natural Logarithms") +
+  guides(color=guide_legend(title=NULL)) + 
+  theme(legend.position="bottom")
+```
+
+```{r, echo=FALSE, warning=FALSE}
+# Mean Absolute Weights
+mean_abs_weights = as.numeric(
+    rowMeans(
+      abs(
+        data_part1[,grepl("Stock",names(data_part1))]
+        )
+      )
+  )
+
+ggplot(data_part1, aes(x=date, y=mean_abs_weights)) + geom_line() +
+  scale_x_date("Date") + scale_y_continuous("Mean Absolute Weights") +
+  ggtitle("3. Daily Mean Absolute Weights")
+```
+
+```{r, echo=FALSE, warning=FALSE}
+# Portfolio Direction
+sum_weight = as.numeric(
+    rowSums(data_part1[,grepl("Stock",names(data_part1))])
+  )
+sum_abs_weight = as.numeric(
+  rowSums(abs(data_part1[,grepl("Stock",names(data_part1))]))
+)
+port_direction= sum_weight / sum_abs_weight
+port_direction[is.nan(port_direction)] = 0
+
+ggplot(data_part1, aes(x=date, y=port_direction)) + geom_line() +
+  scale_x_date("Date") + scale_y_continuous("Portfolio Direction") +
+  ggtitle("4. Daily Portfolio Direction")
+```
+
+We can also look at the relevant statistics below.
+
+```{r xtable, echo=FALSE, warning=FALSE, results = "asis"}
+returns = data_part1$returns
+log_returns = log(returns+1)
+# returns = runif(nrow(data_part1),-0.1,0.1)
+# log_returns = rnorm(length(data_part1$returns))
+
+avg_return = mean(log_returns)
+sd_return = sd(log_returns)
+sharpe_ratio = avg_return / sd_return * sqrt(252)
+
+skew_val = skewness(log_returns)
+kurt_val = kurtosis(log_returns)
+
+# DO NOT use log returns for drawdown!
+# maxDrawdown(returns, geometric = T)
+# findDrawdowns(edhec[,"Funds of Funds", drop=FALSE])
+returns_df = data.frame(returns)
+row.names(returns_df) = data_part1$date
+tab_drawdowns = table.Drawdowns(returns_df,top=1)
+
+days_drawdown = tab_drawdowns$`To Trough`
+max_drawdown = tab_drawdowns$Depth
+
+# mean(log(equal_weight_returns+1))/
+#   sd(log(equal_weight_returns+1)) * sqrt(252)
+# skewness(equal_weight_returns)
+# kurtosis(equal_weight_returns)
+cor_val = cor(equal_weight_returns[rows_selected[-1:-2]],returns)
+
+disp_table = data.frame(
+  Names = c("Average Daily Log Returns",
+            "Standard Deviation of Daily Log Returns",
+            "Annualized Sharpe Ratio",
+            "Skewness",
+            "Kurtosis",
+            "Maximum Drawdown - Number of Days",
+            "Maximum Drawdown - Return",
+            "Correlation with Equal Weighted Returns"),
+  Values = c(avg_return,
+            sd_return,
+            sharpe_ratio,
+            skew_val,
+            kurt_val,
+            days_drawdown,
+            max_drawdown,
+            cor_val)
+)
+
+# tab <- xtable(summary(out)$coef, digits=c(0, 2, 2, 1, 2))
+tab = xtable(disp_table,digits=4,
+             caption="Summary Statistics - Using In-Sample Data")
+print(tab)
+```
+
+### Overview
+
+For this part of the problem, we attempted to predict the open-to-close
+return of each stock and then optimize a trading strategy based on it.
+While we attempted multiple prediction methods, 
+but only a recurrent neural network is consistently successful.
+Optimization also had several issues.
+Perhaps instead of testing many methods naively,
+we should have focused on improving one or two methods.
+We will discuss the process and our findings in 
+the rest of this document.
+
+Firstly, by separating the problem into prediction 
+and optimization, we will need to generate
+all components required for optimization at the prediction step.
+We decided that our prediction output 
+the open to close return $R_{oc}(t,j)$ 
+for each day $t$ and stock $j$.
+For optimization purposes, 
+we ideally would also like to have generate 
+a covariance matrix $\Sigma \in \mathbb{R}^{N\times N}$ 
+of all stocks, which is generated differently for each prediction.
+We will discuss the how the two outputs are used
+in optimization in a later section.
+
+### Recurrent Neural Network
+
+We used a long-short term memory (LSTM) network
+to train the time series model, 
+where we used 6 features for each of the 100 stocks as input.
+The 6 features we used are 
+$ R_{oc}(t-1), R_{co}(t), R_{oo}(t), R_{cc}(t-1), 
+  TVL(t-1,j) / AvrTVL(t-1,j), 
+  RVP(t-1,j) / AvrRVP(t-1,j)$.
+For the hidden layer, 
+we used a total of 20 memory nodes.
+And we used a sliding window of 20 days for 
+the length of the network.
+Then we used the final 603 data points as training data,
+split into mini-batches for training,
+and the first 400 days for testing (trading).
+For training objective, 
+we used the root mean squared error (RMSE).
+Below is our training result.
+
+RMSE:  0.01754913  
+
+Error Rate of Direction:  0.3807604
+
+While the exact values of the prediction is 
+still relatively far off, 
+the direction of move is very well predicted.
+We suspect that the recurrent neural network 
+works well due to the large dimension of input size,
+where very subtle hidden structure of the data 
+can be captured.
+
+We also want to highlight both the training 
+and prediction of the LSTM are extremely fast,
+especially since we used mini-batches for training.
+The entire procedure of training and prediction 
+took only a few minutes.
+
+### Other Attempts at Prediction
+
+While LSTM was successful,
+we had also tried quite a few other methods that 
+did not yield results that were as good.
+
+We first attempted Gaussian process (GP) regression.
+The main disadvantage of GP we found was the speed 
+of computation scaled poorly with data size,
+and we had to fit a separate GPs for each of the 100 stocks,
+and for each point prediction.
+Therefore we were required to first decouple 
+all stocks and predict each time series on its own,
+as well as limiting the training size.
+We had a poor result possibly due to the setup of limited input size.
+
+At the same time we also tried hidden Markov and 
+Markov switching type models.
+These also yielded poor results,
+more likely because we had a poor understanding 
+of these models.
+We had found that either the transition probabilities
+were either less stable (often switching states),
+or too stable (not switching at all).
+
+Both GP and hidden Markov type models 
+outputs an estimate of the variance, 
+ideally we would like to use this estimate.
+Unfortunately these models did not perform 
+well enough for us to use them.
+
+### Optimization
+
+Once we have the prediction,
+we constructed the portfolio by a mean variance optimization:
+
+$$ \max_{w(t,j) \forall j} \mathbb{E}R_p(t) - \lambda Var_p(t) $$
+
+with the choice of $\lambda = 1$.
+We specifically chose to optimize this objective because 
+of convexity, significantly speeding up the optimization time.
+Although this still took relatively long time to compute.
+
+To estimate the covariance matrix, 
+we simply used the trailing 50 data points to estimate the matrix.
+This is the reason why we did not trade for the 50 days.
+
+In this component, we struggled to find an appropriate value
+of $\lambda$, as well as gain intuition from results.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -23,11 +23,14 @@ pred_df = NULL
 N_in = 500
 n_diff= 0
 n_ema = 1
-j = 0
+j = 15
+N_pred = 500
+dim_h = 1
 y_name = paste0("ROC_",j)
-x_names = paste0(c("ROC_","RCC_","RVP_"),j)
+x_names = paste0(c("ROC_","RCC_","RVP_","ROO_","RCO_"),j)
 
-for (i in 1:200) {
+
+for (i in 1:N_pred) {
 	# cat("Iteration:",i,"\n")
 	N_begin = i
 	N_end = i + N_in
@@ -36,7 +39,7 @@ for (i in 1:200) {
 		each_train_data = create_df(input_data,N_begin,N_in,
 							y_name=y_name,x_names=x_names,
 							n_diff=n_diff,n_ema=n_ema)
-		data_mod.mswm = msmFit_df(each_train_data,k=2,p=0)
+		data_mod.mswm = msmFit_df(each_train_data,k=dim_h,p=0)
 
 		state_prob = data_mod.mswm@Fit@filtProb
 		trans_prob = data_mod.mswm@transMat
@@ -59,13 +62,17 @@ for (i in 1:200) {
 	if (i>1) {
 		state_prob_prev = state_prob_cur
 		# E-step, find state_prob_cur
-		cur_mean = c(sum(data_mod.mswm@Coef[1,] * prev_pred_vec),
-					sum(data_mod.mswm@Coef[2,] * prev_pred_vec) )
 		cur_sd = data_mod.mswm@std
-		cur_lh = c( dnorm(prev_pred_data$y, 
-						mean = cur_mean[1], sd = cur_sd[1]),
-					dnorm(prev_pred_data$y, 
-						mean = cur_mean[2], sd = cur_sd[2]) )
+		cur_mean = c()
+		cur_lh = c()
+		for (nh in 1:dim_h) {
+			cur_mean = c(cur_mean,
+						sum(data_mod.mswm@Coef[nh,] * prev_pred_vec))
+			cur_lh = c(cur_lh,
+						dnorm(prev_pred_data$y, 
+						mean = cur_mean[nh], sd = cur_sd[nh]) )
+		}
+		
 		unnorm_posterior = trans_prob %*% state_prob_prev * cur_lh
 		state_prob_cur = as.numeric(unnorm_posterior / 
 									sum(unnorm_posterior))
@@ -89,8 +96,11 @@ for (i in 1:200) {
 	# N_begin = round(nrow(input_data)/2,0)
 	# N_end = nrow(input_data)
 
-	y_regimes = c(sum(data_mod.mswm@Coef[1,] * each_pred_vec),
-		sum(data_mod.mswm@Coef[2,] * each_pred_vec) )
+	y_regimes = c()
+	for (nh in 1:dim_h) {
+		y_regimes = c(y_regimes, 
+					sum(data_mod.mswm@Coef[nh,] * each_pred_vec))
+	}
 
 	# row of y_true
 	nth_row = as.integer(rownames(each_pred_data))+1
@@ -119,7 +129,8 @@ pred_plot2 = ggplot(pred_df,aes(x=x)) +
 # print(pred_plot2)
 
 cat("RMSE: ", with(pred_df, sqrt(mean((y_true - y_pred)^2))), "\n")
-cat("ER: ", with(pred_df, mean((y_true * y_pred)<0)), "\n")
+cat("ER: ", with(pred_df, mean((y_true * y_pred)<0) /
+						mean((y_true * y_pred)!=0)), "\n")
 
 
 

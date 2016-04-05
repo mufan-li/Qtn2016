@@ -20,19 +20,20 @@ in_data = read.csv("in_sample_data_headers2.csv")
 out_df = NULL
 n_stock_begin = 0
 n_stock_end = 0
-N_in = 100
+N_in = 50
 
 for (j in n_stock_begin:n_stock_end) {
 
 	pred_df = NULL
-	N_pred = (nrow(in_data)-N_in)
-	# N_pred = 20
+	# N_pred = (nrow(in_data)-N_in)
+	N_pred = 500
 	for (i in (1:N_pred)) {
 		y_org = in_data[0:N_in + i,paste0("ROC_",j)]
-		y = cumprod(y_org+1)
+		# y = cumprod(y_org+1)
+		y = y_org
 		y0 = y[1:N_in]
 
-		n_ema = 2
+		n_ema = 1
 		y1 = EMA(y0, n = n_ema)
 		# note length changes when taken EMA
 		y1 = y1[n_ema:length(y1)]
@@ -72,7 +73,7 @@ for (j in n_stock_begin:n_stock_end) {
 		x2 = array(N1+(1:N2), dim = length(N1+(1:N2)))
 
 		iter = 100
-		chains = 2
+		chains = 4
 		
 		temp_pred = NULL
 		while (is.null(temp_pred)) {
@@ -113,10 +114,10 @@ for (j in n_stock_begin:n_stock_end) {
 		# print(y2sd)
 
 		# remove cumprod
+		# each_pred = data.frame(x = i+N_in+1, y_true = y_org[N_in+1], 
+		# 					y_pred = y2/y[N_in]-1, sd = y2sd/y[N1])
 		each_pred = data.frame(x = i+N_in+1, y_true = y_org[N_in+1], 
-							y_pred = y2/y[N_in]-1, sd = y2sd/y[N1])
-		# each_pred = data.frame(x = i+N_in+1, y_true = y[N_in+1], 
-		# 					y_pred = y2, sd = y2sd/y[N1])
+							y_pred = y2, sd = y2sd/y[N1])
 
 		pred_df = rbind(pred_df, each_pred)
 	}
@@ -125,7 +126,8 @@ for (j in n_stock_begin:n_stock_end) {
 	# cat("ER:", with(pred_df, mean(
 	# 	(diff(y_true) * (y_pred[-1]-y_true[-length(y_true)]) )<0
 	# )), "\n")
-	cat("ER:", with(pred_df, mean( (y_true * y_pred)<0) ), "\n")
+	cat("ER:", with(pred_df, mean( (y_true * y_pred)<0) /
+							mean( (y_true * y_pred)!=0) ), "\n")
 
 	temp_df = pred_df[,3:4]
 	names(temp_df) = paste0("Stock_",j,c("_pred","_sigma"))
@@ -142,7 +144,8 @@ for (j in n_stock_begin:n_stock_end) {
 		out_df = cbind(out_df,temp_out_df)
 	}
 
-	write.csv(out_df,"gp_pred_stan.csv")
+	write.csv(out_df,paste0("gp_pred_stan_",
+			n_stock_begin,"_",n_stock_end,".csv"))
 }
 
 # pred_plot2 = ggplot(pred_df,aes(x=x)) + 
